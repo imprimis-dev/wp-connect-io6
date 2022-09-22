@@ -9,22 +9,23 @@ $wp_categories_cache = array();
 $wp_brands_cache = array();
 $wp_products_cache = array();
 
-function syncCategories($categories = null) {
+function syncCategories($categories = null)
+{
 	global $wpdb, $io6Engine, $wp_categories_cache;
-  $rootLevel = false;
+	$rootLevel = false;
 	if (!isset($categories)) {
 		$categories = $io6Engine->GetIO6Categories();
     $rootLevel = true;
     $sql = "SELECT term_id, meta_value FROM $wpdb->termmeta 
     where meta_key='io6_category_code'";
-    $results = $wpdb->get_results($wpdb->prepare($sql));
-    foreach ($results as $row) {
-      $wp_categories_cache[$row->meta_value] = intval($row->term_id);
-    }    
-  }
+		$results = $wpdb->get_results($wpdb->prepare($sql));
+		foreach ($results as $row) {
+			$wp_categories_cache[$row->meta_value] = intval($row->term_id);
+		}
+	}
 
 	$wp_parentCategoryId = 0;
-	
+
 	foreach ($categories as $category) {
 		if (!empty($category->parentCode)) {
 			// if(!isset($wp_categories_cache[$category->parentCode])) {
@@ -70,7 +71,7 @@ function syncCategories($categories = null) {
 
     $wp_categoryId = isset($wp_categories_cache[$category->code]) ? $wp_categories_cache[$category->code] : 0;   
 
-		if($wp_categoryId == 0) {
+		if ($wp_categoryId == 0) {
 			$args = array(
 				'hide_empty' => false, // also retrieve terms which are not used yet
 				'name' => $category->name,
@@ -86,20 +87,19 @@ function syncCategories($categories = null) {
 			$wc_category = wp_update_term($wp_categoryId, 'product_cat', array('name' => $category->name, 'parent' => $wp_parentCategoryId));
 		else {
 			$wc_category = wp_insert_term($category->name, 'product_cat', array('parent' => $wp_parentCategoryId));
-			if (!is_wp_error($wc_category)) 
-				$wp_categoryId = $wc_category['term_id'];	
+			if (!is_wp_error($wc_category))
+				$wp_categoryId = $wc_category['term_id'];
 			else
 				throw new Exception($wc_category->get_error_message());
-			
 		}
-		update_term_meta($wp_categoryId, 'io6_category_code', $category->code);	
+		update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
 		$wp_categories_cache[$category->code] = $wp_categoryId;
 
 		if (count($category->subCategories) > 0)
 			syncCategories($category->subCategories);
 	}
-  if ($rootLevel)
-    wp_cache_set('wp_categories', $wp_categories_cache);
+	if ($rootLevel)
+		wp_cache_set('wp_categories', $wp_categories_cache);
 }
 
 function syncBrands()
@@ -113,10 +113,10 @@ function syncBrands()
   //preload brands
   $sql = "SELECT term_id, meta_value FROM $wpdb->termmeta 
   where meta_key='io6_brand_code'";
-  $results = $wpdb->get_results($wpdb->prepare($sql));
-  foreach($results as $row) {
-    $wp_brands_cache[$row->meta_value] = intval($row->term_id);
-  }
+	$results = $wpdb->get_results($wpdb->prepare($sql));
+	foreach ($results as $row) {
+		$wp_brands_cache[$row->meta_value] = intval($row->term_id);
+	}
 
 	foreach ($brands as $brand) {
     $wp_brandId = isset($wp_brands_cache[$brand->code]) ? $wp_brands_cache[$brand->code] : 0;   
@@ -136,57 +136,56 @@ function syncBrands()
 		else {
 			$wc_brand = wp_insert_term($brand->name, $brandField);
 			if (!is_wp_error($wc_brand))
-				$wp_brandId = $wc_brand['term_id'];							
+				$wp_brandId = $wc_brand['term_id'];
 			else
 				throw new Exception($wc_brand->get_error_message());
 		}
 		$wp_brands_cache[$brand->code] = $wp_brandId;
 		update_term_meta($wp_brandId, 'io6_brand_code', $brand->code);
 	}
-  wp_cache_set('wp_brands', $wp_brands_cache);
+	wp_cache_set('wp_brands', $wp_brands_cache);
 }
 
 function syncProducts($currentPage = 1, $fastSync = false)
 {
 	global $wpdb, $images_path, $io6Engine, $wp_products_cache, $wp_brands_cache, $wp_categories_cache, $io6_configuration;
 
-	if($currentPage == 1) {
+	if ($currentPage == 1) {
 		prepareUpdate();    //TODO: EM20211101 => valutare se fare in fastSync
-    //preload products
-    
-    $wp_products_cache = array();
-    $sql = "SELECT post_id, meta_value FROM $wpdb->postmeta  WHERE meta_key='io6_product_id'";
-      $results = $wpdb->get_results($wpdb->prepare($sql));
-      foreach ($results as $row) {
-        $wp_products_cache[$row->meta_value] = intval($row->post_id);
-      }
-      wp_cache_set('wp_products', $wp_products_cache);
-  }
-  else
-    $wp_products_cache = wp_cache_get('wp_products');
+		//preload products
 
-  $wp_categories_cache = wp_cache_get('wp_categories');
-  $wp_brands_cache = wp_cache_get('wp_brands');
+		$wp_products_cache = array();
+		$sql = "SELECT post_id, meta_value FROM $wpdb->postmeta  WHERE meta_key='io6_product_id'";
+		$results = $wpdb->get_results($wpdb->prepare($sql));
+		foreach ($results as $row) {
+			$wp_products_cache[$row->meta_value] = intval($row->post_id);
+		}
+		wp_cache_set('wp_products', $wp_products_cache);
+	} else
+		$wp_products_cache = wp_cache_get('wp_products');
+
+	$wp_categories_cache = wp_cache_get('wp_categories');
+	$wp_brands_cache = wp_cache_get('wp_brands');
 
 	$skuField = $io6_configuration->selectedSkuField;
 	$eanField = $io6_configuration->selectedEanField;
 	$partNumberField = $io6_configuration->selectedPartNumberField;
 	$brandField = $io6_configuration->selectedBrandField;
 
-  $update_categories = !$fastSync && $io6_configuration->manageCategories;
-  $update_title = !$fastSync && $io6_configuration->manageTitle;
-  $update_content = !$fastSync && $io6_configuration->manageContent;
-  $update_excerpt = !$fastSync && $io6_configuration->manageExcerpt;
-  $update_prices = $io6_configuration->managePrices;
-  $update_images = !$fastSync && $io6_configuration->manageImages;
-  $update_features = !$fastSync && $io6_configuration->manageFeatures;
-  $update_features_html = !$fastSync && $io6_configuration->manageFeaturesHTML;
-  $exclude_noimage = !$fastSync && $io6_configuration->excludeNoImage;
-  $exclude_unavail_products = $io6_configuration->excludeUnAvail;
+	$update_categories = !$fastSync && $io6_configuration->manageCategories;
+	$update_title = !$fastSync && $io6_configuration->manageTitle;
+	$update_content = !$fastSync && $io6_configuration->manageContent;
+	$update_excerpt = !$fastSync && $io6_configuration->manageExcerpt;
+	$update_prices = $io6_configuration->managePrices;
+	$update_images = !$fastSync && $io6_configuration->manageImages;
+	$update_features = !$fastSync && $io6_configuration->manageFeatures;
+	$update_features_html = !$fastSync && $io6_configuration->manageFeaturesHTML;
+	$exclude_noimage = !$fastSync && $io6_configuration->excludeNoImage;
+	$exclude_unavail_products = $io6_configuration->excludeUnAvail;
 
 	$product_type = get_term_by('name', 'simple', 'product_type');
-	if(!$product_type)
-			throw new Exception("Impossibile ottenere il 'product_type'. Verificare l'installazione di WooCommerce");
+	if (!$product_type)
+		throw new Exception("Impossibile ottenere il 'product_type'. Verificare l'installazione di WooCommerce");
 	//$exclude_status = intval($options['exclude_status']);
 
 
@@ -197,28 +196,28 @@ function syncProducts($currentPage = 1, $fastSync = false)
 	$syncResults['elementsFounds'] = $io6_results['elementsFounds'];
 	$syncResults['products'] = array();
 	foreach ($io6_results['products'] as $product) {
-    $io6_manage_categories = false;
-    $io6_manage_title = false;
-    $io6_manage_content = false;
-    $io6_manage_excerpt = false;
-    $io6_manage_prices = false;
-    $io6_manage_images = false;
-    $io6_manage_features = false;
-    $io6_manage_features_html = false;
+		$io6_manage_categories = false;
+		$io6_manage_title = false;
+		$io6_manage_content = false;
+		$io6_manage_excerpt = false;
+		$io6_manage_prices = false;
+		$io6_manage_images = false;
+		$io6_manage_features = false;
+		$io6_manage_features_html = false;
 
 		$retProduct = array('io6_id' => $product->id, 'ean' => $product->ean, 'partnumber' => $product->partNumber);
-    
-		try {			
+
+		try {
 			$wp_product_id = isset($wp_products_cache[$product->id]) ? $wp_products_cache[$product->id] : 0;
 			$wp_brand_id = !$fastSync &&	isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
 			$wp_category_id = !$fastSync && isset($wp_categories_cache[$product->categoryCode]) ? $wp_categories_cache[$product->categoryCode] : 0;
 
 			$wp_brand = null;
 			$wp_category = null;
-			
+
 			$skuProp = str_replace('io6_sku_', '', $skuField);
 			$skuValue = $product->$skuProp;
-			
+
 			if ($wp_product_id == 0) {
 				// $sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='io6_product_id' AND $wpdb->postmeta.meta_value='$product->id'";
 				// $results = $wpdb->get_results($wpdb->prepare($sql));
@@ -246,250 +245,248 @@ function syncProducts($currentPage = 1, $fastSync = false)
 			$newReference = $wp_product_id == 0;
 			$has_cms_images = false;
 
-      if($newReference && $exclude_unavail_products && (int)$product->avail <= 0) {
-        throw new Exception("Product $skuValue doesn't exists and cannot be created because is unavail."); 
-      }
+			if ($newReference && $exclude_unavail_products && (int)$product->avail <= 0) {
+				throw new Exception("Product $skuValue doesn't exists and cannot be created because is unavail.");
+			}
 
-			
-      if($newReference && $fastSync) {    //se fastsync = true e il prodotto non esiste esce
-        throw new Exception("Product $skuValue doesn't exists and cannot be created during fastSync.");        
-      }
 
-      $activeState = $product->isActive && $product->statusCode != 99 && (!$exclude_noimage || count($product->images) > 0);
-			
-			if ($wp_product_id) {				
+			if ($newReference && $fastSync) {    //se fastsync = true e il prodotto non esiste esce
+				throw new Exception("Product $skuValue doesn't exists and cannot be created during fastSync.");
+			}
+
+			$activeState = $product->isActive && $product->statusCode != 99 && (!$exclude_noimage || count($product->images) > 0);
+
+			if ($wp_product_id) {
 				$retProduct['wp_product_id'] = $wp_product_id;
 				$post_metas = get_post_meta($wp_product_id);
-				
-				if (isset($post_metas['io6_exclude'][0]) && intval($post_metas['io6_exclude'][0]) == 1) {					
+
+				if (!isset($post_metas['io6_exclude'][0]) || intval($post_metas['io6_exclude'][0]) == 1) {
 					throw new Exception("Product $wp_product_id is not managed by " . IO6_PLUGIN_NAME);
 				}
 
-        $io6_manage_categories = isset($post_metas['io6_manage_categories'][0]) ? intval($post_metas['io6_manage_categories'][0]) : 2;
-        $io6_manage_title = isset($post_metas['io6_manage_title'][0]) ? intval($post_metas['io6_manage_title'][0]) : 2;
-        $io6_manage_content = isset($post_metas['io6_manage_content'][0]) ? intval($post_metas['io6_manage_content'][0]) : 2;
-        $io6_manage_excerpt = isset($post_metas['io6_manage_excerpt'][0]) ? intval($post_metas['io6_manage_excerpt'][0]) : 2;
-        $io6_manage_prices = isset($post_metas['io6_manage_prices'][0]) ? intval($post_metas['io6_manage_prices'][0]) : 2;
-        $io6_manage_images = isset($post_metas['io6_manage_images'][0]) ? intval($post_metas['io6_manage_images'][0]) : 2;
-        $io6_manage_features = isset($post_metas['io6_manage_features'][0]) ? intval($post_metas['io6_manage_features'][0]) : 2;
-        $io6_manage_features_html = isset($post_metas['io6_manage_features_html'][0]) ? intval($post_metas['io6_manage_features_html'][0]) : 2;
+				$io6_manage_categories = isset($post_metas['io6_manage_categories'][0]) ? intval($post_metas['io6_manage_categories'][0]) : 2;
+				$io6_manage_title = isset($post_metas['io6_manage_title'][0]) ? intval($post_metas['io6_manage_title'][0]) : 2;
+				$io6_manage_content = isset($post_metas['io6_manage_content'][0]) ? intval($post_metas['io6_manage_content'][0]) : 2;
+				$io6_manage_excerpt = isset($post_metas['io6_manage_excerpt'][0]) ? intval($post_metas['io6_manage_excerpt'][0]) : 2;
+				$io6_manage_prices = isset($post_metas['io6_manage_prices'][0]) ? intval($post_metas['io6_manage_prices'][0]) : 2;
+				$io6_manage_images = isset($post_metas['io6_manage_images'][0]) ? intval($post_metas['io6_manage_images'][0]) : 2;
+				$io6_manage_features = isset($post_metas['io6_manage_features'][0]) ? intval($post_metas['io6_manage_features'][0]) : 2;
+				$io6_manage_features_html = isset($post_metas['io6_manage_features_html'][0]) ? intval($post_metas['io6_manage_features_html'][0]) : 2;
 
-        if($io6_manage_images && $exclude_noimage && !$fastSync) {
-          $wc_product = new WC_Product($wp_product_id);
-          if ($wc_product != null)
-            $has_cms_images = !empty($wc_product->get_image_id()); //|| count($wc_product->get_gallery_image_ids()) > 0				
-          
-          $activeState = $activeState && $has_cms_images;
-        }
-          
-
-        $io6_manage_categories = $activeState ? ($io6_manage_categories != 2 ? $io6_manage_categories : $update_categories) : false;
-        $io6_manage_title = $activeState ? ($io6_manage_title != 2 ? $io6_manage_title : $update_title) : false;
-        $io6_manage_content = $activeState ? ($io6_manage_content != 2 ? $io6_manage_content : $update_content) : false;
-        $io6_manage_excerpt = $activeState ? ($io6_manage_excerpt != 2 ? $io6_manage_excerpt : $update_excerpt) : false;
-        $io6_manage_prices = $activeState ? ($io6_manage_prices != 2 ? $io6_manage_prices : $update_prices) : false;
-        $io6_manage_images = $activeState ? ($io6_manage_images != 2 ? $io6_manage_images : $update_images) : false;
-        $io6_manage_features = $activeState ? ($io6_manage_features != 2 ? $io6_manage_features : $update_features) : false;
-        $io6_manage_features_html = $activeState ? ($io6_manage_features_html != 2 ? $io6_manage_features_html : $update_features_html) : false;
-
-        if ($fastSync) {
-          $io6_manage_categories = false;
-          $io6_manage_title = false;
-          $io6_manage_content = false;
-          $io6_manage_excerpt = false;
-          $io6_manage_prices = $activeState ? ($io6_manage_prices != 2 ? $io6_manage_prices : true) : false;
-          $io6_manage_images = false;
-          $io6_manage_features = false;
-          $io6_manage_features_html = false;
-        }
-			}
-			else {
-        $io6_manage_categories = true;
-        $io6_manage_title = true;
-        $io6_manage_content = true;
-        $io6_manage_excerpt = true;
-        $io6_manage_prices = true;
-        $io6_manage_images = $update_images;
-        $io6_manage_features = $update_features;
-        $io6_manage_features_html = $update_features_html;
-			}
-
-      $retProduct['activeState'] = $activeState;
-      if (!$wp_product_id && !$activeState) {
-        throw new Exception("Product $skuValue isn't active.");
-      }
-
-
-      if(!$fastSync) {
-        if ($wp_brand_id == 0) {
-          $args = array(
-            'hide_empty' => false,
-            'meta_query' => array(
-              array(
-                'key'       => 'io6_brand_code',
-                'value'     => $product->brandCode,
-                'compare'   => '='
-              )
-            ),
-            'taxonomy'  => $brandField,
-          );
-          $terms = get_terms($args);
-          $wp_brand = !empty($terms) ? reset($terms) : null;
-          $wp_brand_id = isset($wp_brand) ? $wp_brand->term_id : 0;
-        }
-
-        if ($wp_category_id == 0) {
-          $args = array(
-            'hide_empty' => false,
-            'meta_query' => array(
-              array(
-                'key'       => 'io6_category_code',
-                'value'     => $product->categoryCode,
-                'compare'   => '='
-              )
-            ),
-            'taxonomy'  => 'product_cat',
-          );
-          $terms = get_terms($args);
-          $wp_category = !empty($terms) ? reset($terms) : null;
-          $wp_category_id = isset($wp_category) ? $wp_category->term_id : 0;
-        } else {
-          $wp_category = get_term($wp_category_id, 'product_cat');
-        }
-
-
-        if ($wp_brand_id == 0 || $wp_category_id == 0) {
-          throw new Exception("No brand [$product->brandCode] or category [$product->categoryCode] found for product $wp_product_id");
-        }
-      
-        $wp_product = array();
-        $wp_product['ID'] = $wp_product_id;
-
-        $wp_product['post_status'] = "publish";
-        $wp_product['post_type'] = "product";
-
-        if ($io6_manage_title && isset($product->title)) {
-          $wp_product['post_title'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
-            return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
-          }, $product->title);
-          $wp_product['post_title'] =  substr(preg_replace('/[<>;=#{}]/', '', $wp_product['post_title']), 0, 128);
-        }
-        if ($io6_manage_content && isset($product->fullDescription)) {
-          $wp_product['post_content'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
-            return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
-          }, $product->fullDescription);
-          $wp_product['post_content'] =  preg_replace('/\\\\n/', '<br/>', $wp_product['post_content']);
-        }
-
-        if ($io6_manage_excerpt && isset($product->shortDescription)) {
-          $wp_product['post_excerpt'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
-            return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
-          }, $product->shortDescription);
-
-          $wp_product['post_excerpt'] =  substr(preg_replace('/\\\\n/', '<br/>', $wp_product['post_excerpt']), 0, 400);
-        }
-        if($activeState) {
-          $wp_product_id = $newReference ? wp_insert_post($wp_product, true) : wp_update_post($wp_product, true);
-
-          if (is_wp_error($wp_product_id)) {				
-            throw new Exception($wp_product_id->get_error_message());
-          }
-        }
-
-
-        //TODO: EM20210329 => campi da gestire
-
-        //$arrivalAvail;			NN c'è un campo su WooCommerce
-        //$arrivalDate;				NN c'è un campo su WooCommerce
-        //$officialPrice;			NN c'è un campo su WooCommerce			
-        //$raeeAmount;				NN c'è un campo su WooCommerce
-        $wc_product = new WC_Product($wp_product_id);
-      }
-
-      if($io6_manage_categories) {
-
-        $product_cat_id = 0;
-        //if(!$newReference) {
-          // $productCategories = get_the_terms($wp_product_id, 'product_cat' );
-          // $productCategories = wp_get_post_terms($wp_product_id, 'product_cat', array('fields' => 'ids'));
-          // foreach ($productCategories as $productCategory) {
-          //   if($productCategory->parent != 0){
-          //     $product_cat_id = $productCategory->term_id;
-          //     break;
-          //   }
-          // }
+				$wc_product = new WC_Product($wp_product_id);
         
-          if($product_cat_id != $wp_category_id) {
-            $categories = array();
-            $categories[] = $wp_category_id;
-            
-            $parent = $wp_category->parent;
-            while ($parent > 0) {
-              // Make an array of all term ids up to the parent.
-              $categories[] = $parent;
-              $grandpa = get_term($parent, 'product_cat');
-              $parent = $grandpa->parent;
-            }
+				if ($io6_manage_images && $exclude_noimage && !$fastSync) {
+					if ($wc_product != null)
+						$has_cms_images = !empty($wc_product->get_image_id()); //|| count($wc_product->get_gallery_image_ids()) > 0				
 
-            // If multiple terms are returned, update the object terms
-            if (count($categories) > 0) wp_set_object_terms($wp_product_id, $categories, 'product_cat');
-          }
-        //}
-      }
+					$activeState = $activeState && $has_cms_images;
+				}
 
-			update_post_meta($wp_product_id, 'io6_exclude', '0'); 
+
+				$io6_manage_categories = $activeState ? ($io6_manage_categories != 2 ? $io6_manage_categories : $update_categories) : false;
+				$io6_manage_title = $activeState ? ($io6_manage_title != 2 ? $io6_manage_title : $update_title) : false;
+				$io6_manage_content = $activeState ? ($io6_manage_content != 2 ? $io6_manage_content : $update_content) : false;
+				$io6_manage_excerpt = $activeState ? ($io6_manage_excerpt != 2 ? $io6_manage_excerpt : $update_excerpt) : false;
+				$io6_manage_prices = $activeState ? ($io6_manage_prices != 2 ? $io6_manage_prices : $update_prices) : false;
+				$io6_manage_images = $activeState ? ($io6_manage_images != 2 ? $io6_manage_images : $update_images) : false;
+				$io6_manage_features = $activeState ? ($io6_manage_features != 2 ? $io6_manage_features : $update_features) : false;
+				$io6_manage_features_html = $activeState ? ($io6_manage_features_html != 2 ? $io6_manage_features_html : $update_features_html) : false;
+
+				if ($fastSync) {
+					$io6_manage_categories = false;
+					$io6_manage_title = false;
+					$io6_manage_content = false;
+					$io6_manage_excerpt = false;
+					$io6_manage_prices = $activeState ? ($io6_manage_prices != 2 ? $io6_manage_prices : true) : false;
+					$io6_manage_images = false;
+					$io6_manage_features = false;
+					$io6_manage_features_html = false;
+				}
+			} else {
+				$io6_manage_categories = true;
+				$io6_manage_title = true;
+				$io6_manage_content = true;
+				$io6_manage_excerpt = true;
+				$io6_manage_prices = true;
+				$io6_manage_images = $update_images;
+				$io6_manage_features = $update_features;
+				$io6_manage_features_html = $update_features_html;
+			}
+
+			$retProduct['activeState'] = $activeState;
+			if (!$wp_product_id && !$activeState) {
+				throw new Exception("Product $skuValue isn't active.");
+			}
+
+
+			if (!$fastSync) {
+				if ($wp_brand_id == 0) {
+					$args = array(
+						'hide_empty' => false,
+						'meta_query' => array(
+							array(
+								'key'       => 'io6_brand_code',
+								'value'     => $product->brandCode,
+								'compare'   => '='
+							)
+						),
+						'taxonomy'  => $brandField,
+					);
+					$terms = get_terms($args);
+					$wp_brand = !empty($terms) ? reset($terms) : null;
+					$wp_brand_id = isset($wp_brand) ? $wp_brand->term_id : 0;
+				}
+
+				if ($wp_category_id == 0) {
+					$args = array(
+						'hide_empty' => false,
+						'meta_query' => array(
+							array(
+								'key'       => 'io6_category_code',
+								'value'     => $product->categoryCode,
+								'compare'   => '='
+							)
+						),
+						'taxonomy'  => 'product_cat',
+					);
+					$terms = get_terms($args);
+					$wp_category = !empty($terms) ? reset($terms) : null;
+					$wp_category_id = isset($wp_category) ? $wp_category->term_id : 0;
+				} else {
+					$wp_category = get_term($wp_category_id, 'product_cat');
+				}
+
+
+				if ($wp_brand_id == 0 || $wp_category_id == 0) {
+					throw new Exception("No brand [$product->brandCode] or category [$product->categoryCode] found for product $wp_product_id");
+				}
+
+				$wp_product = array();
+				$wp_product['ID'] = $wp_product_id;
+
+				$wp_product['post_status'] = "publish";
+				$wp_product['post_type'] = "product";
+
+				if ($io6_manage_title && isset($product->title)) {
+					$wp_product['post_title'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
+						return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
+					}, $product->title);
+					$wp_product['post_title'] =  substr(preg_replace('/[<>;=#{}]/', '', $wp_product['post_title']), 0, 128);
+				}
+				if ($io6_manage_content && isset($product->fullDescription)) {
+					$wp_product['post_content'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
+						return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
+					}, $product->fullDescription);
+					$wp_product['post_content'] =  preg_replace('/\\\\n/', '<br/>', $wp_product['post_content']);
+				}
+
+				if ($io6_manage_excerpt && isset($product->shortDescription)) {
+					$wp_product['post_excerpt'] = preg_replace_callback("/(&#[0-9]+;)/", function ($m) {
+						return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");
+					}, $product->shortDescription);
+
+					$wp_product['post_excerpt'] =  substr(preg_replace('/\\\\n/', '<br/>', $wp_product['post_excerpt']), 0, 400);
+				}
+				if ($activeState) {
+					$wp_product_id = $newReference ? wp_insert_post($wp_product, true) : wp_update_post($wp_product, true);
+
+					if (is_wp_error($wp_product_id)) {
+						throw new Exception($wp_product_id->get_error_message());
+					}
+				}
+
+
+				//TODO: EM20210329 => campi da gestire
+
+				//$arrivalAvail;			NN c'è un campo su WooCommerce
+				//$arrivalDate;				NN c'è un campo su WooCommerce
+				//$officialPrice;			NN c'è un campo su WooCommerce			
+				//$raeeAmount;				NN c'è un campo su WooCommerce
+        if($newReference)
+				  $wc_product = new WC_Product($wp_product_id);
+			}
+
+			if ($io6_manage_categories) {
+
+				$product_cat_id = 0;
+				//if(!$newReference) {
+				// $productCategories = get_the_terms($wp_product_id, 'product_cat' );
+				// $productCategories = wp_get_post_terms($wp_product_id, 'product_cat', array('fields' => 'ids'));
+				// foreach ($productCategories as $productCategory) {
+				//   if($productCategory->parent != 0){
+				//     $product_cat_id = $productCategory->term_id;
+				//     break;
+				//   }
+				// }
+
+				if ($product_cat_id != $wp_category_id) {
+					$categories = array();
+					$categories[] = $wp_category_id;
+
+					$parent = $wp_category->parent;
+					while ($parent > 0) {
+						// Make an array of all term ids up to the parent.
+						$categories[] = $parent;
+						$grandpa = get_term($parent, 'product_cat');
+						$parent = $grandpa->parent;
+					}
+
+					// If multiple terms are returned, update the object terms
+					if (count($categories) > 0) wp_set_object_terms($wp_product_id, $categories, 'product_cat');
+				}
+				//}
+			}
+			update_post_meta($wp_product_id, 'io6_exclude', '0');
 			update_post_meta($wp_product_id, 'io6_product_id', $product->id);
-			
-      if($activeState) {
+
+			if ($activeState) {
 				update_post_meta($wp_product_id, 'io6_updated', 1);
-				
-        if(!$fastSync) {
-          $wc_product->set_sku($skuValue);
-          
-          if (isset($product->partNumber) && !empty($product->partNumber))
-            update_post_meta($wp_product_id, $partNumberField, $product->partNumber);
-          
-          if (isset($product->ean) && !empty($product->ean))
-            update_post_meta($wp_product_id, $eanField, $product->ean);
 
-          wp_set_object_terms($wp_product_id, $wp_brand_id, $brandField);
-          //wp_set_object_terms($wp_product_id, $wp_category_id, 'product_cat');
-          
-          if($newReference)
-            wp_set_object_terms($wp_product_id, array($product_type->term_id), 'product_type');
-            
-          $wc_product->set_manage_stock(true);				
-          $wc_product->set_weight($product->weight);				
-          $wc_product->set_width($product->width);				
-          $wc_product->set_length($product->length);				
-          $wc_product->set_height($product->height);				
-        }
+				if (!$fastSync) {
+					$wc_product->set_sku($skuValue);
 
-				if($io6_manage_prices) {
-					$wc_product->set_regular_price(round($product->sellingPrice + $product->siaeAmount, 2));									
-					$wc_product->set_sale_price(round($product->sellingCustomPrice + $product->siaeAmount, 2));					
-					$wc_product->set_price(round($product->sellingCustomPrice + $product->siaeAmount, 2));					
+					if (isset($product->partNumber) && !empty($product->partNumber))
+						update_post_meta($wp_product_id, $partNumberField, $product->partNumber);
+
+					if (isset($product->ean) && !empty($product->ean))
+						update_post_meta($wp_product_id, $eanField, $product->ean);
+
+					wp_set_object_terms($wp_product_id, $wp_brand_id, $brandField);
+					//wp_set_object_terms($wp_product_id, $wp_category_id, 'product_cat');
+
+					if ($newReference)
+						wp_set_object_terms($wp_product_id, array($product_type->term_id), 'product_type');
+
+					$wc_product->set_manage_stock(true);
+					$wc_product->set_weight($product->weight);
+					$wc_product->set_width($product->width);
+					$wc_product->set_length($product->length);
+					$wc_product->set_height($product->height);
+				}
+
+				if ($io6_manage_prices) {
+					$wc_product->set_regular_price(round($product->sellingPrice + $product->siaeAmount, 2));
+					$wc_product->set_sale_price(round($product->sellingCustomPrice + $product->siaeAmount, 2));
+					$wc_product->set_price(round($product->sellingCustomPrice + $product->siaeAmount, 2));
 
 					$utcCustomPriceUntil = strtotime($product->sellingCustomPriceUntil);
 
-					if($utcCustomPriceUntil !== false && $utcCustomPriceUntil < 253402300799) {
+					if ($utcCustomPriceUntil !== false && $utcCustomPriceUntil < 253402300799) {
 						$wc_product->set_date_on_sale_to($utcCustomPriceUntil);
-					}
-					else
+					} else
 						$wc_product->set_date_on_sale_to(null);
-					
 				}
 			}
-			
-			$wc_product->set_stock_status((int)$product->avail > 0 && $activeState ? 'instock' : 'outofstock');			
-			$wc_product->set_stock_quantity($activeState ? (int)$product->avail : 0);			
+
+			$wc_product->set_stock_status((int)$product->avail > 0 && $activeState ? 'instock' : 'outofstock');
+			$wc_product->set_stock_quantity($activeState ? (int)$product->avail : 0);
 			$wc_product->set_catalog_visibility($activeState ? 'visible' : 'hidden');		//TODO: EM20210330 => si potrebbero differenziare le due impostazioni magari visualizzando il prodotto solo nel dettaglio
-						
+
 			$wc_product->save();
 
 			if ($io6_manage_images) {
-        
-			$sql = "SELECT wp.ID FROM $wpdb->posts wp LEFT JOIN $wpdb->postmeta wpm ON wpm.post_id = wp.ID AND wpm.meta_key='io6_imageuri'
+
+				$sql = "SELECT wp.ID FROM $wpdb->posts wp LEFT JOIN $wpdb->postmeta wpm ON wpm.post_id = wp.ID AND wpm.meta_key='io6_imageuri'
 			 WHERE wpm.post_id IS NULL AND wp.`post_type`='attachment' AND wp.post_mime_type <> '' AND wp.post_parent = " . $wp_product_id;
 				$results = $wpdb->get_results($wpdb->prepare($sql));
 
@@ -533,21 +530,21 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						}
 					));
 
-          $attach_id = !empty($wp_image) ? $wp_image['postid'] : 0;
- 					if(!empty($attach_id)) {
-            $wp_image_last_update = get_post_meta($attach_id, 'io6_last_update', true);
-            if (empty($wp_image_last_update))
-              $wp_image_last_update = date('YmdHis', filemtime($wp_image['absolute_path']));
-          }
-          
+					$attach_id = !empty($wp_image) ? $wp_image['postid'] : 0;
+					if (!empty($attach_id)) {
+						$wp_image_last_update = get_post_meta($attach_id, 'io6_last_update', true);
+						if (empty($wp_image_last_update))
+							$wp_image_last_update = date('YmdHis', filemtime($wp_image['absolute_path']));
+					}
+
 
 					$to_download = empty($wp_image) || !file_exists($wp_image['absolute_path']) || date('Y-m-d H:i:s', strtotime($image->lastUpdate)) > $wp_image_last_update;
-					
+
 
 					if ($to_download) {
-            //scarica l'immagine
+						//scarica l'immagine
 
-            $image_data     = isset($image->imageUri) ? file_get_contents($image->imageUri) : null; // Get image data								
+						$image_data     = isset($image->imageUri) ? file_get_contents($image->imageUri) : null; // Get image data								
 						if (!isset($image_data) || $image_data === false) continue;
 
 						$image_filename = wp_unique_filename($images_path, basename($image->imageUri));
@@ -578,7 +575,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						// Assign metadata to attachment
 						wp_update_attachment_metadata($attach_id, $attach_data);
 
-            update_post_meta($attach_id, 'io6_last_update', date('Y-m-d H:i:s', strtotime($image->lastUpdate)));
+						update_post_meta($attach_id, 'io6_last_update', date('Y-m-d H:i:s', strtotime($image->lastUpdate)));
 					}
 					if ($key == 0)
 						set_post_thumbnail($wp_product_id, $attach_id);
@@ -647,38 +644,36 @@ function syncProducts($currentPage = 1, $fastSync = false)
 				update_post_meta($wp_product_id, '_product_attributes', $serialized_attributes);
 			}
 			$retProduct['status_message'] = "Ok";
-		}
-		catch (Exception $e) {
+		} catch (Exception $e) {
 			$retProduct['status_message'] = $e->getMessage();
 			io6_write_log($e, IO6_LOG_WARNING);
 		}
 		array_push($syncResults['products'], $retProduct);
 	}
 
-	if($currentPage >= $io6_results['pages'])
+	if ($currentPage >= $io6_results['pages'])
 		resetCatalog();
 
 	return $syncResults;
 }
 
-function prepareUpdate() {
+function prepareUpdate()
+{
 	global $wpdb, $io6Engine;
 
 	$sql = "DELETE FROM $wpdb->postmeta WHERE meta_key='io6_updated'";
 	$wpdb->query($sql);
-
 }
 
-function resetCatalog() {
+function resetCatalog()
+{
 	global $wpdb, $io6Engine;
 
 	$sql = "UPDATE $wpdb->posts p					
-					LEFT OUTER JOIN $wpdb->postmeta pm_exclude ON pm_exclude.post_id = p.ID AND pm_exclude.meta_key='io6_exclude '
+					INNER JOIN $wpdb->postmeta pm_exclude ON pm_exclude.post_id = p.ID AND pm_exclude.meta_key='io6_exclude '
 					LEFT OUTER JOIN $wpdb->postmeta pm_updated ON pm_updated.post_id = p.ID AND pm_updated.meta_key='io6_updated'	
 					SET p.post_status='private'
-					WHERE p.post_type='product' AND p.post_status='publish' AND IFNULL(pm_updated.meta_value, 0) = 0 AND pm_exclude.meta_value = 0";
+					WHERE p.post_type='product' AND p.post_status='publish' AND pm_exclude.meta_value = 0 AND IFNULL(pm_updated.meta_value, 0) = 0 ";
 
 	$wpdb->query($sql);
-
-
 }

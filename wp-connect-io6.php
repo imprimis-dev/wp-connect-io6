@@ -32,54 +32,11 @@ $logFile = $logs_path . date('Ymd'). '.txt';
 if (!wp_mkdir_p($logs_path))
 	throw new Exception('Cannot create log folder!');
 
-require_once('core/src/classes/IO6ConnectEngine.class.php');
+require_once('core/src/classes/IO6ConnectEngine.php');
 
 
 $io6_configuration = new IO6ConnectConfiguration(get_option('io6_options'));
 $io6Engine = new IO6ConnectEngine($io6_configuration);
-
-
-$_catalogs = [];
-$_pricelists = [];
-try {
-	if(!$io6Engine->CheckApiConnection())
-		$_catalogs = false;
-	else
-		$_catalogs = $io6Engine->GetIO6Catalogs();
-	$set_catalogId = 0;
-
-	if(!empty($_catalogs)) {
-		$set_catalogId = !empty(array_filter($_catalogs, function ($catalog) use($io6_configuration) {
-			return $catalog->id == $io6_configuration->catalogId;
-		}));
-	}
-
-	if(!$set_catalogId)
-		$io6_configuration->catalogId = 0;
-
-	try {
-		$_pricelists = $io6Engine->GetIO6PriceLists();
-		$set_priceListId = 0;
-		
-		if(!empty($_pricelists)) {
-			$set_priceListId = !empty(array_filter($_pricelists, function ($pricelist) use($io6_configuration) {
-				return $pricelist->id == $io6_configuration->priceListId;
-			}));
-		}
-
-		if(!$set_priceListId)
-			$io6_configuration->priceListId = 0;
-	}
-	catch(Exception $e) {
-		$_pricelists = false;
-		$io6_configuration->priceListId = 0;
-	}
-}
-catch(Exception $e) {
-	$_catalogs = false;	
-	$io6_configuration->catalogId = 0;
-	
-}
 
 
 

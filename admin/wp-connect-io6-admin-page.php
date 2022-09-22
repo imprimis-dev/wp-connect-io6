@@ -1,5 +1,8 @@
 <?php
 
+$_catalogs = [];
+$_pricelists = [];
+
 add_action('admin_notices', function () {
   global $_catalogs, $_pricelists, $io6_configuration;
 
@@ -10,21 +13,21 @@ add_action('admin_notices', function () {
              <p>' . __('Woocommerce non installato', IO6_DOMAIN) . '</p>
          </div>';
     }
-    if ($_catalogs === false) {
-      echo '<div class="notice notice-error">
-							 <p>' . __('API SETTINGS non validi o API Endpoint non raggiungibile.', IO6_DOMAIN) . '</p>
-					 </div>';
-    }
-    if (is_array($_catalogs) && count($_catalogs) == 0) {
-      echo '<div class="notice notice-warning">
-							 <p>' . __('Non sono presenti Cataloghi Personali attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
-					 </div>';
-    }
-    if ($io6_configuration->catalogId != 0 && (!is_array($_pricelists) || count($_pricelists) == 0)) {
-      echo '<div class="notice notice-warning">
-							 <p>' . __('Non sono presenti Listini attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
-					 </div>';
-    }
+    // if ($_catalogs === false) {
+    //   echo '<div class="notice notice-error">
+		// 					 <p>' . __('API SETTINGS non validi o API Endpoint non raggiungibile.', IO6_DOMAIN) . '</p>
+		// 			 </div>';
+    // }
+    // if (is_array($_catalogs) && count($_catalogs) == 0) {
+    //   echo '<div class="notice notice-warning">
+		// 					 <p>' . __('Non sono presenti Cataloghi Personali attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
+		// 			 </div>';
+    // }
+    // if ($io6_configuration->catalogId != 0 && (!is_array($_pricelists) || count($_pricelists) == 0)) {
+    //   echo '<div class="notice notice-warning">
+		// 					 <p>' . __('Non sono presenti Listini attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
+		// 			 </div>';
+    // }
   }
 });
 
@@ -89,10 +92,64 @@ add_action('admin_menu', function () {
 });
 
 function admin_io6_settings() {
-  global $io6_configuration, $_catalogs;
+  global $io6Engine, $io6_configuration, $_catalogs, $_pricelists;
   if (!current_user_can('manage_options'))
     return;
 
+  try {
+    if (!$io6Engine->CheckApiConnection())
+    $_catalogs = false;
+    else
+    $_catalogs = $io6Engine->GetIO6Catalogs();
+    $set_catalogId = 0;
+
+    if (!empty($_catalogs)) {
+      $set_catalogId = !empty(array_filter($_catalogs, function ($catalog) use ($io6_configuration) {
+        return $catalog->id == $io6_configuration->catalogId;
+      }));
+    }
+
+    if (!$set_catalogId)
+    $io6_configuration->catalogId = 0;
+
+    try {
+      $_pricelists = $io6Engine->GetIO6PriceLists();
+      $set_priceListId = 0;
+
+      if (!empty($_pricelists)) {
+        $set_priceListId = !empty(array_filter($_pricelists, function ($pricelist) use ($io6_configuration) {
+          return $pricelist->id == $io6_configuration->priceListId;
+        }));
+      }
+
+      if (!$set_priceListId)
+        $io6_configuration->priceListId = 0;
+    } catch (Exception $e) {
+      $_pricelists = false;
+      $io6_configuration->priceListId = 0;
+    }
+  } catch (Exception $e) {
+    $_catalogs = false;
+    $io6_configuration->catalogId = 0;
+  }
+
+
+  if ($_catalogs === false) {
+    echo '<div class="notice notice-error">
+							 <p>' . __('API SETTINGS non validi o API Endpoint non raggiungibile.', IO6_DOMAIN) . '</p>
+					 </div>';
+  }
+
+  if (is_array($_catalogs) && count($_catalogs) == 0) {
+    echo '<div class="notice notice-warning">
+							 <p>' . __('Non sono presenti Cataloghi Personali attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
+					 </div>';
+  }
+  if ($io6_configuration->catalogId != 0 && (!is_array($_pricelists) || count($_pricelists) == 0)) {
+    echo '<div class="notice notice-warning">
+							 <p>' . __('Non sono presenti Listini attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
+					 </div>';
+  }
 
   // add error/update messages
 
@@ -102,44 +159,6 @@ function admin_io6_settings() {
   // add settings saved message with the class of "updated"
   //add_settings_error('icecool_messages', 'icecool_message', __('Settings Saved', 'icecool'), 'updated');
   //}
-
-  // show error/update messages
-  settings_errors(IO6_DOMAIN . '_messages');
-  ?>
-  <div class="wrap">
-    <h1><?php printf(__('%s - Configura', IO6_DOMAIN), IO6_PLUGIN_NAME); ?></h1>
-
-    <div class="config-info">
-      <p>Configura in questa pagina i parametri per la connessione con ImporterONE Cloud</p>
-      <p>Accedi alla pagina <strong>Integrazioni CM</strong>S nel portale <a href="https://app.importerone.it" target="_blank">app.importerone.it</a> per abilitare la connessione dal tuo WooCommerce</p>
-      <p>Crea un Token indicando il dominio del tuo sito: <strong><?php echo $_SERVER['HTTP_HOST'] ?></strong></p>
-      <p>Copia il Token generato e l'indirizzo dell'API Endpoint che trovi in quella stessa pagina per valorizzare i dati qui sotto.</p>
-    </div>
-    <?php
-    if (defined('WC_VERSION')) { ?>
-      <form action="options.php" method="post">
-        <?php
-        settings_fields(IO6_DOMAIN);
-        do_settings_sections('io6_section_api');
-        if (!empty($_catalogs))
-          do_settings_sections('io6_section_general');
-        if ($io6_configuration->catalogId && $io6_configuration->priceListId) {
-          do_settings_sections('io6_section_products');
-          do_settings_sections('io6_section_import');
-        }
-        submit_button(__('Save Settings', IO6_DOMAIN));
-        ?>
-
-      </form>
-    <?php } ?>
-  </div>
-<?php
-}
-
-add_action('admin_init', function () {
-  global $io6_configuration, $_catalogs;
-
-  register_setting(IO6_DOMAIN, 'io6_options' /*, 'ic_options_validate'*/);
 
   add_settings_section(
     'io6_section_api',
@@ -489,6 +508,46 @@ add_action('admin_init', function () {
   // 		'id' => 'ic_add_features_shortcode'
   // 	)
   // );
+
+  // show error/update messages
+  settings_errors(IO6_DOMAIN . '_messages');
+  ?>
+  <div class="wrap">
+    <h1><?php printf(__('%s - Configura', IO6_DOMAIN), IO6_PLUGIN_NAME); ?></h1>
+
+    <div class="config-info">
+      <p>Configura in questa pagina i parametri per la connessione con ImporterONE Cloud</p>
+      <p>Accedi alla pagina <strong>Integrazioni CM</strong>S nel portale <a href="https://app.importerone.it" target="_blank">app.importerone.it</a> per abilitare la connessione dal tuo WooCommerce</p>
+      <p>Crea un Token indicando il dominio del tuo sito: <strong><?php echo $_SERVER['HTTP_HOST'] ?></strong></p>
+      <p>Copia il Token generato e l'indirizzo dell'API Endpoint che trovi in quella stessa pagina per valorizzare i dati qui sotto.</p>
+    </div>
+    <?php
+    if (defined('WC_VERSION')) { ?>
+      <form action="options.php" method="post">
+        <?php
+        settings_fields(IO6_DOMAIN);
+        do_settings_sections('io6_section_api');
+        if (!empty($_catalogs))
+          do_settings_sections('io6_section_general');
+        if ($io6_configuration->catalogId && $io6_configuration->priceListId) {
+          do_settings_sections('io6_section_products');
+          do_settings_sections('io6_section_import');
+        }
+        submit_button(__('Save Settings', IO6_DOMAIN));
+        ?>
+
+      </form>
+    <?php } ?>
+  </div>
+<?php
+}
+
+add_action('admin_init', function () {
+  global $io6_configuration, $_catalogs;
+
+  register_setting(IO6_DOMAIN, 'io6_options' /*, 'ic_options_validate'*/);
+
+  
 });
 
 // function ic_options_validate($input)
