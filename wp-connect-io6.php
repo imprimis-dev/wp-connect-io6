@@ -15,9 +15,9 @@ define('IO6_PLUGIN_NAME', 'ImporterONE Cloud Connector');
 //define('IO6_PREFIX', 'io6_');
 define('IO6_DOMAIN', 'io6-wp-connect');
 define('IO_PHP_MIN', '7.4.13');
-define('IO_PHP_MAX', '7.4.13');
+define('IO_PHP_MAX', '7.4.32');
 define('IO_WOOCOMMERCE_MIN', '3.0.0');
-define('IO_WOOCOMMERCE_MAX', '6.8.2');
+define('IO_WOOCOMMERCE_MAX', '6.9.4');
 define('IO_MAX_EXECUTION_TIME', 300);
 define('IO_MEMORY_LIMIT', 512);
 
@@ -37,8 +37,6 @@ require_once('core/src/classes/IO6ConnectEngine.php');
 
 $io6_configuration = new IO6ConnectConfiguration(get_option('io6_options'));
 $io6Engine = new IO6ConnectEngine($io6_configuration);
-
-
 
 
 require_once('admin/wp-connect-io6-customfields.php');
@@ -72,9 +70,10 @@ function io6_sync() {
 	$currentPage = isset($_GET['page']) ? intval($_GET['page']) : 1;
   $fastSync = isset($_GET['fastsync']) ? (bool)($_GET['fastsync']) : 0;
 
-	if($currentPage == 1 && !$fastSync) {		
-		syncCategories();	
+	if($currentPage == 1 && !$fastSync) {				
 		syncBrands();
+		syncSuppliers();
+		syncCategories();	
 	}
   
 	$results = syncProducts($currentPage, $fastSync);

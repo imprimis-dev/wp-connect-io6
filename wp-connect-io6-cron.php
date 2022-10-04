@@ -3,8 +3,6 @@
 $currentPage = 1;
 $totalPages = 1;
 
-$totalRows = -1;
-
 $callUrl = isset($argv) && count($argv) > 1 ? $argv[1] : '';
 
 if($callUrl != '') {
@@ -22,7 +20,7 @@ if($callUrl != '') {
 			
 		}
 		catch(Exception $e) {
-			$totalPages=1;
+			$totalPages=-1;
 		}
   } 
 	echo 'Update from ImporterONE Cloud terminata' . PHP_EOL;

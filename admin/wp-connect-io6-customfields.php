@@ -104,8 +104,8 @@ add_action('woocommerce_product_options_general_product_data', function () {
       'cbvalue' => 1,
 			'value' => empty($set_exclude_value) ? 1 : $set_exclude_value[0],
       'description' => sprintf(__('Escludi da %s', IO6_DOMAIN), IO6_PLUGIN_NAME)			
-    ),
-    1
+    )
+    
   );
 });
 add_action('woocommerce_product_options_advanced', function () {
@@ -250,35 +250,64 @@ add_action('woocommerce_process_product_meta', function ($post_id) {
 
 
 
-if ($io6_configuration->selectedBrandField === 'io6_product_brand') {
+
   add_action('init', function () {
-    register_taxonomy('io6_product_brand', array('product'), array(
-      'labels' => array(
-        'name' => 'Marche',
-        'singular_name' => 'Marca',
-        'search_items' => 'Cerca Marche',
-        'all_items' => 'Tutte le Marche',
-        'parent_item' => 'Parent Brand',
-        'parent_item_colon' => 'Parent Brand:',
-        'edit_item' => 'Modifica Marca',
-        'update_item' => 'Aggiorna Marca',
-        'add_new_item' => 'Aggiungi Nuova Marca',
-        'new_item_name' => 'Nuova Marca',
-        'not_found' => 'No Brand Found',
-        'menu_name' => 'Marche'
-      ),
-      'hierarchical' => false,
-      'query_var' => true,
-      'public' => true,
-      'show_tagcloud' => true,
-      'show_admin_column' => true,
-      'show_in_nav_menus' => true,
-      'sort' => '',
-      'rewrite' => array('slug' => 'brand', 'with_front' => false),
-      'show_ui' => true
-    ));
-  }, 0);
-}
+		global $io6_configuration;
+
+		if ($io6_configuration->selectedBrandField === 'io6_product_brand') {
+			register_taxonomy('io6_product_brand', array('product'), array(
+				'labels' => array(
+					'name' => 'Marche',
+					'singular_name' => 'Marca',
+					'search_items' => 'Cerca Marche',
+					'all_items' => 'Tutte le Marche',
+					'parent_item' => 'Parent Brand',
+					'parent_item_colon' => 'Parent Brand:',
+					'edit_item' => 'Modifica Marca',
+					'update_item' => 'Aggiorna Marca',
+					'add_new_item' => 'Aggiungi Nuova Marca',
+					'new_item_name' => 'Nuova Marca',
+					'not_found' => 'No Brand Found',
+					'menu_name' => 'Marche'
+				),
+				'hierarchical' => false,
+				'query_var' => true,
+				'public' => true,
+				'show_tagcloud' => true,
+				'show_admin_column' => true,
+				'show_in_nav_menus' => true,
+				'sort' => '',
+				'rewrite' => array('slug' => 'brand', 'with_front' => false),
+				'show_ui' => true
+			));
+	}
+	register_taxonomy('io6_product_supplier', array('product'), array(
+		'labels' => array(
+			'name' => 'Fornitori',
+			'singular_name' => 'Fornitore',
+			'search_items' => 'Cerca Fornitore',
+			'all_items' => 'Tutte i Fornitori',
+			'parent_item' => 'Parent Supplier',
+			'parent_item_colon' => 'Parent Supplier:',
+			'edit_item' => 'Modifica Fornitore',
+			'update_item' => 'Aggiorna Fornitore',
+			'add_new_item' => 'Aggiungi Nuovo Fornitore',
+			'new_item_name' => 'Nuovo Fornitore',
+			'not_found' => 'No Supplier Found',
+			'menu_name' => 'Fornitori'
+		),
+		'hierarchical' => false,
+		'query_var' => true,
+		'public' => true,
+		'show_tagcloud' => true,
+		'show_admin_column' => false,
+		'show_in_nav_menus' => false,
+		'sort' => '',
+		'rewrite' => array('slug' => 'supplier', 'with_front' => false),
+		'show_ui' => true
+	));
+}, 0);
+
 
 
 ?>

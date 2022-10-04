@@ -7,6 +7,7 @@ if (!wp_mkdir_p($images_path))
 
 $wp_categories_cache = array();
 $wp_brands_cache = array();
+$wp_suppliers_cache = array();
 $wp_products_cache = array();
 
 function syncCategories($categories = null)
@@ -146,9 +147,53 @@ function syncBrands()
 	wp_cache_set('wp_brands', $wp_brands_cache);
 }
 
+function syncSuppliers()
+{
+	global $wpdb, $io6Engine, $wp_suppliers_cache, $io6_configuration;
+
+	$supplierField = "io6_product_supplier";
+
+	$suppliers = $io6Engine->GetIO6Suppliers();
+
+  //preload suppliers
+  $sql = "SELECT term_id, meta_value FROM $wpdb->termmeta 
+  where meta_key='io6_supplier_code'";
+	$results = $wpdb->get_results($wpdb->prepare($sql));
+	foreach ($results as $row) {
+		$wp_suppliers_cache[$row->meta_value] = intval($row->term_id);
+	}
+
+	foreach ($suppliers as $supplier) {
+    $wp_supplierId = isset($wp_suppliers_cache[$supplier->id]) ? $wp_suppliers_cache[$supplier->id] : 0;   
+		if($wp_supplierId == 0) {
+			$args = array(
+				'hide_empty' => false, // also retrieve terms which are not used yet
+				'name' => $supplier->name,
+				'taxonomy'  => $supplierField
+			);
+			$terms = get_terms($args);
+			$wp_supplierId = !empty($terms) ? reset($terms)->term_id : 0;
+		}
+
+		$wc_supplier = null;
+		if ($wp_supplierId)
+			$wc_supplier = wp_update_term($wp_supplierId, $supplierField, array('name' => $supplier->name));
+		else {
+			$wc_supplier = wp_insert_term($supplier->name, $supplierField);
+			if (!is_wp_error($wc_supplier))
+				$wp_supplierId = $wc_supplier['term_id'];
+			else
+				throw new Exception($wc_supplier->get_error_message());
+		}
+		$wp_suppliers_cache[$supplier->id] = $wp_supplierId;
+		update_term_meta($wp_supplierId, 'io6_supplier_code', $supplier->id);
+	}
+	wp_cache_set('wp_suppliers', $wp_suppliers_cache);
+}
+
 function syncProducts($currentPage = 1, $fastSync = false)
 {
-	global $wpdb, $images_path, $io6Engine, $wp_products_cache, $wp_brands_cache, $wp_categories_cache, $io6_configuration;
+	global $wpdb, $images_path, $io6Engine, $wp_products_cache, $wp_brands_cache, $wp_categories_cache, $wp_suppliers_cache, $io6_configuration;
 
 	if ($currentPage == 1) {
 		prepareUpdate();    //TODO: EM20211101 => valutare se fare in fastSync
@@ -166,11 +211,13 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 	$wp_categories_cache = wp_cache_get('wp_categories');
 	$wp_brands_cache = wp_cache_get('wp_brands');
+	$wp_suppliers_cache = wp_cache_get('wp_suppliers');
 
 	$skuField = $io6_configuration->selectedSkuField;
 	$eanField = $io6_configuration->selectedEanField;
 	$partNumberField = $io6_configuration->selectedPartNumberField;
 	$brandField = $io6_configuration->selectedBrandField;
+	$supplierField = 'io6_product_supplier';
 
 	$update_categories = !$fastSync && $io6_configuration->manageCategories;
 	$update_title = !$fastSync && $io6_configuration->manageTitle;
@@ -211,6 +258,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 			$wp_product_id = isset($wp_products_cache[$product->id]) ? $wp_products_cache[$product->id] : 0;
 			$wp_brand_id = !$fastSync &&	isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
 			$wp_category_id = !$fastSync && isset($wp_categories_cache[$product->categoryCode]) ? $wp_categories_cache[$product->categoryCode] : 0;
+			$wp_supplier_id = !$fastSync &&	isset($wp_suppliers_cache[$product->supplierId]) ? $wp_suppliers_cache[$product->supplierId] : 0;
 
 			$wp_brand = null;
 			$wp_category = null;
@@ -337,6 +385,23 @@ function syncProducts($currentPage = 1, $fastSync = false)
 					$wp_brand_id = isset($wp_brand) ? $wp_brand->term_id : 0;
 				}
 
+				if ($wp_supplier_id == 0) {
+					$args = array(
+						'hide_empty' => false,
+						'meta_query' => array(
+							array(
+								'key'       => 'io6_supplier_code',
+								'value'     => $product->supplierId,
+								'compare'   => '='
+							)
+						),
+						'taxonomy'  => $supplierField,
+					);
+					$terms = get_terms($args);
+					$wp_supplier = !empty($terms) ? reset($terms) : null;
+					$wp_supplier_id = isset($wp_supplier) ? $wp_supplier->term_id : 0;
+				}
+
 				if ($wp_category_id == 0) {
 					$args = array(
 						'hide_empty' => false,
@@ -452,7 +517,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						update_post_meta($wp_product_id, $eanField, $product->ean);
 
 					wp_set_object_terms($wp_product_id, $wp_brand_id, $brandField);
-					//wp_set_object_terms($wp_product_id, $wp_category_id, 'product_cat');
+					wp_set_object_terms($wp_product_id, $wp_supplier_id, $supplierField);
 
 					if ($newReference)
 						wp_set_object_terms($wp_product_id, array($product_type->term_id), 'product_type');
