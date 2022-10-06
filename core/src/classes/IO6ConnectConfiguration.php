@@ -45,7 +45,7 @@ class IO6ConnectConfiguration
 			$this->tempFolder = array_key_exists('tempfolder', $configuration) ? $configuration['tempfolder'] : '';
 			
 			$this->selectedBrandField = array_key_exists('select_brand_field', $configuration) ? $configuration['select_brand_field'] : 'io6_product_brand';
-			$this->selectedSkuField = array_key_exists('select_sku_field', $configuration) ? $configuration['select_sku_field'] : 'io6_sku_productcode';
+			$this->selectedSkuField = array_key_exists('select_sku_field', $configuration) ? $configuration['select_sku_field'] : 'io6_sku_partNumber';
 			$this->selectedEanField = array_key_exists('select_ean_field', $configuration) ? $configuration['select_ean_field'] : 'io6_eancode';
 			$this->selectedPartNumberField = array_key_exists('select_partnumber_field', $configuration) ? $configuration['select_partnumber_field'] : 'io6_partnumber';
 

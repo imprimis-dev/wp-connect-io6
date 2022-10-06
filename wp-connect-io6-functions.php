@@ -256,7 +256,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 		try {
 			$wp_product_id = isset($wp_products_cache[$product->id]) ? $wp_products_cache[$product->id] : 0;
-			$wp_brand_id = !$fastSync &&	isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
+			$wp_brand_id = isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
 			$wp_category_id = !$fastSync && isset($wp_categories_cache[$product->categoryCode]) ? $wp_categories_cache[$product->categoryCode] : 0;
 			$wp_supplier_id = !$fastSync &&	isset($wp_suppliers_cache[$product->supplierId]) ? $wp_suppliers_cache[$product->supplierId] : 0;
 
@@ -267,11 +267,21 @@ function syncProducts($currentPage = 1, $fastSync = false)
 			$skuValue = $product->$skuProp;
 
 			if ($wp_product_id == 0) {
-				// $sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='io6_product_id' AND $wpdb->postmeta.meta_value='$product->id'";
-				// $results = $wpdb->get_results($wpdb->prepare($sql));
-				// if (isset($results) && count($results) > 0) {
-				// 	$wp_product_id = $results[0]->post_id;
-				// }
+				if ($fastSync)
+						throw new Exception("Prodotto non aggiornabile con procedura FAST perchè non esistente in WooCommerce o non abbinato ad ImporterONE.");						
+				
+				if (!empty($product->$skuProp)) {
+					$sql = "SELECT post_id FROM $wpdb->postmeta ";					
+					if($skuProp == 'partnumber')
+						$sql .= "INNER JOIN $wpdb->term_relationships tr ON tr.object_id = $wpdb->postmeta.post_id AND tr.term_taxonomy_id = $wp_brand_id";					
+					$sql .= "WHERE $wpdb->postmeta.meta_key='_sku' AND $wpdb->postmeta.meta_value='" . esc_sql($skuValue) . "'";
+
+					
+					$results = $wpdb->get_results($wpdb->prepare($sql));
+					if (isset($results) && count($results) > 0) {
+						$wp_product_id = $results[0]->post_id;
+					}
+				}
 
 				if ($wp_product_id == 0 && !empty($product->ean)) {
 					$sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='$eanField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->ean) . "'";
@@ -280,9 +290,12 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						$wp_product_id = $results[0]->post_id;
 					}
 				}
-				if ($wp_product_id == 0 && !empty($product->partNumber)) {
-					//TODO: EM20210325 => forse nn serve cercare anche per brandname perchè sopra ho cercato già il brand code... nn può essere un altro
-					$sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='$partNumberField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->partNumber) . "'";
+				
+				if ($wp_product_id == 0 && !empty($product->partNumber)) {					
+					$sql = "SELECT post_id FROM $wpdb->postmeta ";
+					if($skuProp == 'partnumber')
+						$sql .= "INNER JOIN $wpdb->term_relationships tr ON tr.object_id = $wpdb->postmeta.post_id AND tr.term_taxonomy_id = $wp_brand_id";
+					$sql .= " WHERE $wpdb->postmeta.meta_key='$partNumberField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->partNumber) . "'";
 					$results = $wpdb->get_results($wpdb->prepare($sql));
 					if (isset($results) && count($results) > 0) {
 						$wp_product_id = $results[0]->post_id;
@@ -721,6 +734,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 	return $syncResults;
 }
+
 
 function prepareUpdate()
 {
