@@ -1,49 +1,92 @@
 <?php
 
+
 $_catalogs = [];
 $_pricelists = [];
 
 add_action('admin_notices', function () {
   global $_catalogs, $_pricelists, $io6_configuration;
+	
 
+
+	
   $screen = get_current_screen();
   if ($screen->parent_base == 'io6-main-menu') {
     if (!defined('WC_VERSION')) {
-      echo '<div class="notice notice-error is-dismissible">
+      echo '<div class="notice notice-error">
              <p>' . __('Woocommerce non installato', IO6_DOMAIN) . '</p>
          </div>';
     }
-    // if ($_catalogs === false) {
-    //   echo '<div class="notice notice-error">
-		// 					 <p>' . __('API SETTINGS non validi o API Endpoint non raggiungibile.', IO6_DOMAIN) . '</p>
-		// 			 </div>';
-    // }
-    // if (is_array($_catalogs) && count($_catalogs) == 0) {
-    //   echo '<div class="notice notice-warning">
-		// 					 <p>' . __('Non sono presenti Cataloghi Personali attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
-		// 			 </div>';
-    // }
-    // if ($io6_configuration->catalogId != 0 && (!is_array($_pricelists) || count($_pricelists) == 0)) {
-    //   echo '<div class="notice notice-warning">
-		// 					 <p>' . __('Non sono presenti Listini attivi. Verifica sul tuo ImporterONE Cloud.', IO6_DOMAIN) . '</p>
-		// 			 </div>';
-    // }
+
+		$requirements = checkServerRequirements();
+
+		if($requirements['passed'] == false) {
+			?>
+			<div class="notice notice-error requirements">
+			<h3>Requisiti minimi non soddisfatti.</h3>
+			<p><strong>Continuando con l'esecuzione del plugin o del cron le procedure potrebbero non funzionare correttamente e si accetta di proseguire a proprio rischio.</strong></p>
+			<table>
+				<thead>
+					<tr>
+						<th></th>
+						<th>Richiesto</th>
+						<th>Attuale</th>
+					</tr>					
+				</thead>
+				<tbody>
+				<?php 
+				if(!$requirements['wc_version']['passed']) {?>
+					<tr>
+						<th>VERSIONE WOOCOMMERCE</th>
+						<td><?php echo $requirements['wc_version']['required'] ?></td>					
+						<td><?php echo $requirements['wc_version']['current'] ?></td>					
+					</tr>
+					<?php }
+				if(!$requirements['php_version']['passed']) {?>
+					<tr>
+						<th>VERSIONE PHP</th>
+						<td><?php echo $requirements['php_version']['required'] ?></td>					
+						<td><?php echo $requirements['php_version']['current'] ?></td>					
+					</tr>
+				<?php }
+				 if(!$requirements['max_execution_time']['passed']) {?>
+					<tr>
+						<th>MAX EXECUTION TIME</th>
+						<td><?php echo $requirements['max_execution_time']['required'] ?></td>					
+						<td><?php echo $requirements['max_execution_time']['current'] ?></td>					
+					</tr>
+				<?php }
+				if(!$requirements['memory_limit']['passed']) {?>
+				<tr>
+					<th>MEMORY LIMIT</th>
+					<td><?php echo $requirements['memory_limit']['required'] ?></td>					
+						<td><?php echo $requirements['memory_limit']['current'] ?></td>					
+				</tr>
+				<?php }?>
+				</tbody>				
+				
+			</table>
+	</div>
+	<?php
+		}
+   
   }
 });
 
 add_action('admin_enqueue_scripts', function ($hook) {
-  // Only add to the edit.php admin page.
-  // See WP docs.
+ 
   wp_enqueue_style('main', plugin_dir_url(__DIR__) . '/assets/css/main.css');
 
-  if ('importerone-cloud-connector_page_io6_menu_execute' !== $hook) {
-    return;
+  if ('importerone-cloud-connector_page_io6_menu_execute' === $hook) {
+		wp_enqueue_script('main', plugin_dir_url(__DIR__) . '/assets/js/main.js', array('jquery'), false, true);
+	
+		return;
   }
+	else {
+		wp_enqueue_script('settings', plugin_dir_url(__DIR__) . '/assets/js/settings.js', array('jquery'), false, true);
+	}
 
-  wp_enqueue_script('main', plugin_dir_url(__DIR__) . '/assets/js/main.js', array('jquery'), false, true);
-
-
-
+  
   wp_register_script('io6_settings_js', '');
   wp_enqueue_script('io6_settings_js');
   wp_add_inline_script('io6_settings_js', 'var io6_ajax_url = "' . admin_url('admin-ajax.php') . '";');
@@ -53,6 +96,9 @@ add_action('admin_enqueue_scripts', function ($hook) {
 
 add_action('wp_ajax_nopriv_io6-sync', 'io6_sync');
 add_action('wp_ajax_io6-sync', 'io6_sync');
+
+add_action('wp_ajax_nopriv_io6-test-api', 'io6_test_api');
+add_action('wp_ajax_io6-test-api', 'io6_test_api');
 
 add_action('admin_menu', function () {
   add_menu_page(
@@ -151,20 +197,11 @@ function admin_io6_settings() {
 					 </div>';
   }
 
-  // add error/update messages
-
-  // check if the user have submitted the settings
-  // WordPress will add the "settings-updated" $_GET parameter to the url
-  //if (isset($_GET['settings-updated'])) {
-  // add settings saved message with the class of "updated"
-  //add_settings_error('icecool_messages', 'icecool_message', __('Settings Saved', 'icecool'), 'updated');
-  //}
 
   add_settings_section(
     'io6_section_api',
     __('API Settings', IO6_DOMAIN),
-    function () {
-      //echo '<p>GENERAL Here you can set all the options for using the API</p>';
+    function () {      
     },
     'io6_section_api'
   );
@@ -173,7 +210,6 @@ function admin_io6_settings() {
       'io6_section_general',
       __('General Settings', IO6_DOMAIN),
       function () {
-        //echo '<p>GENERAL Here you can set all the options for using the API</p>';
       },
       'io6_section_general'
     );
@@ -183,7 +219,6 @@ function admin_io6_settings() {
       'io6_section_products',
       __('Products Settings', IO6_DOMAIN),
       function () {
-        //echo '<p>GENERAL Here you can set all the options for using the API</p>';
       },
       'io6_section_products'
     );
@@ -192,7 +227,6 @@ function admin_io6_settings() {
       'io6_section_import',
       __('Import Settings', IO6_DOMAIN),
       function () {
-        //echo '<p>GENERAL Here you can set all the options for using the API</p>';
       },
       'io6_section_import'
     );
@@ -418,18 +452,6 @@ function admin_io6_settings() {
     )
   );
 
-  /*add_settings_field(
-    'io6_exclude_status',
-    'Disattiva obsoleti',
-    'io6_render_exclude_status',
-    'io6_section_import',
-    'io6_section_import',
-    array(
-      'id' => 'io6_exclude_status'
-    )
-  );*/
-
-
   add_settings_field(
     'io6_image_limit',
     'Numero massimo immagini',
@@ -451,17 +473,6 @@ function admin_io6_settings() {
       'id' => 'io6_exclude_noimage'
     )
   );
-
-  // add_settings_field(
-  //   'io6_exclude_unavail',
-  //   'Prodotti non disponibili',
-  //   'io6_render_exclude_unavail',
-  //   'io6_section_import',
-  //   'io6_section_import',
-  //   array(
-  //     'id' => 'io6_exclude_unavail'
-  //   )
-  // );
 
   add_settings_field(
     'io6_exclude_avail_lessthan',
@@ -497,19 +508,6 @@ function admin_io6_settings() {
     )
   );
 
-
-  // add_settings_field(
-  // 	'ic_add_features_shortcode',
-  // 	'Shortcode caratteristiche',
-  // 	'ic_render_add_features_shortcode',
-  // 	'ic_section_icecat',
-  // 	'ic_section_icecat',
-  // 	array(
-  // 		'id' => 'ic_add_features_shortcode'
-  // 	)
-  // );
-
-  // show error/update messages
   settings_errors(IO6_DOMAIN . '_messages');
   ?>
   <div class="wrap">
@@ -527,6 +525,11 @@ function admin_io6_settings() {
         <?php
         settings_fields(IO6_DOMAIN);
         do_settings_sections('io6_section_api');
+				?>
+				<div class="test-api">
+					<input type="button" class="button" id="test-api" value="Test Connessione ImporterONE" />
+				</div>
+				<?php
         if (!empty($_catalogs))
           do_settings_sections('io6_section_general');
         if ($io6_configuration->catalogId && $io6_configuration->priceListId) {
@@ -535,7 +538,6 @@ function admin_io6_settings() {
         }
         submit_button(__('Save Settings', IO6_DOMAIN));
         ?>
-
       </form>
     <?php } ?>
   </div>
@@ -545,20 +547,10 @@ function admin_io6_settings() {
 add_action('admin_init', function () {
   global $io6_configuration, $_catalogs;
 
-  register_setting(IO6_DOMAIN, 'io6_options' /*, 'ic_options_validate'*/);
+  register_setting(IO6_DOMAIN, 'io6_options');
 
   
 });
-
-// function ic_options_validate($input)
-// {
-// 	$newinput['api_key'] = trim($input['api_key']);
-// 	if (!preg_match('/^[a-z0-9]{32}$/i', $newinput['api_key'])) {
-// 		$newinput['api_key'] = '';
-// 	}
-
-// 	return $newinput;
-// }
 
 function io6_render_apiendpoint($args) {
   global $io6_configuration;
@@ -877,20 +869,6 @@ function io6_render_image_limit($args) {
 
 }
 
-/*
-function io6_render_exclude_status($args) {
-  global $io6_options;
-  $defaultValue = $io6_options === false ? 1 : $io6_options['exclude_status'];
-?>
-  <input id="<?php echo esc_attr($args['id']); ?>" name="io6_options[exclude_status]" type="checkbox" value="1" <?php echo ($defaultValue == 1 ? 'checked' : '') ?> />
-  <label for="<?php echo esc_attr($args['id']); ?>">
-    Disattiva prodotti obsoleti
-  </label>
-
-<?php
-
-}*/
-
 function io6_render_exclude_noimage($args) {
   global $io6_configuration;
   $defaultValue = $io6_configuration->excludeNoImage;
@@ -935,20 +913,6 @@ function io6_render_exclude_avail_type($args) {
 
 }
 
-/*
-function io6_exclude_avail_type($args) {
-  global $io6_configuration;
-  $defaultValue = $io6_configuration->excludeUnAvail;
-?>
-  <input id="<?php echo esc_attr($args['id']); ?>" name="io6_options[exclude_unavail]" type="checkbox" value="1" <?php echo ($defaultValue ? 'checked' : '') ?> />
-  <label for="<?php echo esc_attr($args['id']); ?>">
-    Non creare prodotti non disponibili
-   </label>
- <?php
-}
-*/
-
-
 function io6_render_cron_cmd($args) {
 
   $defaultValue = "php " . plugin_dir_path(__DIR__) . 'wp-connect-io6-cron.php ' . site_url() . '/wp-admin/admin-ajax.php?action=io6-sync&fastsync=false';
@@ -960,4 +924,38 @@ function io6_render_cron_cmd($args) {
 
 <?php
 
+}
+
+function checkServerRequirements() {
+		$server_checking = [];
+		$server_checking['max_execution_time'] = array(
+			'required' => IO6_MAX_EXECUTION_TIME, 
+			'current' => intval(ini_get('max_execution_time')), 
+			'passed' => (intval(ini_get('max_execution_time')) >= IO6_MAX_EXECUTION_TIME)
+		);
+
+		$server_checking['memory_limit'] = array(
+			'required' => IO6_MEMORY_LIMIT, 
+			'current' => intval(ini_get('memory_limit')), 
+			'passed' => (intval(ini_get('memory_limit')) >= IO6_MEMORY_LIMIT)
+		);
+		$server_checking['php_version'] = array(
+			'required' => IO6_PHP_MIN . ' - ' . IO6_PHP_MAX, 
+			'current' => phpversion(), 
+			'passed' => (version_compare(phpversion(), IO6_PHP_MIN, '>=') && version_compare(phpversion(), IO6_PHP_MAX, '<='))
+		);
+		$server_checking['wc_version'] = array(
+			'required' => IO6_WOOCOMMERCE_MIN . ' - ' . IO6_WOOCOMMERCE_MAX, 
+			'current' => WC_VERSION, 
+			'passed' => (version_compare(WC_VERSION, IO6_WOOCOMMERCE_MIN, '>=') && version_compare(WC_VERSION, IO6_WOOCOMMERCE_MAX, '<='))
+		);
+		$server_checking['passed'] = true;
+		foreach($server_checking as $requirement) {
+			if($requirement['passed'] == false) {
+				$server_checking['passed'] = false;
+				break;
+			}
+		}
+		
+		return $server_checking;
 }

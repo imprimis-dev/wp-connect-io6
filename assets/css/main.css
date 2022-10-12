@@ -39,3 +39,12 @@
 .fast-sync {
   margin-bottom:15px;
 }
+.requirements table th, .requirements table td {
+	padding:3px;
+}
+.requirements table th {
+	text-align: left;
+}
+.requirements table tbody td {
+	text-align: center;
+}

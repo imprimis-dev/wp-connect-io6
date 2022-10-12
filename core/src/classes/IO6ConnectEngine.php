@@ -8,10 +8,7 @@ require_once('IO6Catalog.php');
 require_once('IO6Supplier.php');
 
 class IO6ConnectEngine {
-    //region Proprietà
   private  $configuration;
-	private  $products;
-    //endregion
 
     //region Metodi
     function __construct(IO6ConnectConfiguration $configuration) {
@@ -112,7 +109,7 @@ class IO6ConnectEngine {
 			$parameters['calculateFoundRows'] = true;
 			$parameters['excludeAvailLessThan'] = $this->configuration->excludeAvailLessThan;
 			$parameters['excludeAvailType'] = $this->configuration->excludeAvailType;
-
+			$parameters['imagesSearch'] = $this->configuration->excludeNoImage ? 1 : 0;
 			$parameters['isActive'] = 1;
 			$parameters['isObsolete'] = 0;
 
@@ -120,7 +117,6 @@ class IO6ConnectEngine {
 
 			$results = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters);
 
-			//TODO: EM20210325 => dovrebbe indicare anche quanti sono i record in totale così da poterla eseguire più volte
 			$products = array();
 
 			foreach($results['items'] as $jProduct) {							
@@ -137,9 +133,6 @@ class IO6ConnectEngine {
 			$parameters = [];
 			$jPriceLists = $this->callIO6API(sprintf('catalogs/%s/pricelists', $this->configuration->catalogId), 'GET', $parameters);
 			
-			// if(empty($jPriceLists))
-			// 	$jPriceLists = [];
-			
 			if(is_array($jPriceLists)) {
 				foreach($jPriceLists as $jPriceList) {							
 					$priceLists[] = new IO6PriceList($jPriceList);
@@ -149,10 +142,48 @@ class IO6ConnectEngine {
 			return $priceLists;
 		}
 
+		public function TestAPI($endPoint, $api_token) {
+			$results = array();
+
+			try {
+				$retValue = $this->callIO6API('catalogs', 'GET', null, $endPoint, $api_token);
+				$results['response']['catalogs']['passed'] = true;
+				$results['response']['catalogs']['total'] = count($retValue);
+			}
+			catch(Exception $ex) {
+				$results['response']['catalogs']['passed'] = false;
+			}
+			
+
+
+			try {
+				$parameters = [];
+				//$parameters['priceListId'] = $this->configuration->priceListId;
+				$parameters['pageSize'] = 5;
+				$parameters['currentPage'] = 1;
+				$parameters['imagelimit'] = 1;
+				$parameters['featuresSearch'] = 0;
+				$parameters['calculateFoundRows'] = true;			
+				$parameters['imagesSearch'] = 0;
+				$parameters['isActive'] = 1;
+				$parameters['isObsolete'] = 0;
+
+				$retValue = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters, $endPoint, $api_token);
+
+				$results['response']['products']['passed'] = true;
+				$results['response']['products']['total'] = $retValue['elementsFounds'];
+			}
+			catch(Exception $ex) {
+				$results['response']['products']['passed'] = false;
+			}
+			
+			return $results;
+		}
+
 	
-		private function callIO6API($action, $method = 'POST', array $parameters = null) {
-			$api_token = $this->configuration->apiToken;			
-			$endPoint = rtrim($this->configuration->apiEndPoint, '/');
+		private function callIO6API($action, $method = 'POST', array $parameters = null, $endPoint = null, $api_token = null) {
+			$api_token = $api_token == null ? $this->configuration->apiToken : $api_token;
+			$endPoint = $endPoint == null ? rtrim($this->configuration->apiEndPoint, '/') : $endPoint;
 		
 
 			 $requestUrl = "$endPoint/$action";
@@ -185,7 +216,6 @@ class IO6ConnectEngine {
 				$output = false;
 			}
 			else if (curl_errno($ch)){
-				//  $output = new Exception(curl_error($ch), curl_errno($ch)); //TODO 20210505 è meglio fare la THROW  dell'eccezione
 				 throw new Exception("Errore di comunicazione con le API di ImporterONE. " . curl_error($ch), curl_errno($ch));
 			}
 			else{
