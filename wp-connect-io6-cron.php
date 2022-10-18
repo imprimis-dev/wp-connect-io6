@@ -40,8 +40,8 @@ function get_web_page($url)
     CURLOPT_ENCODING       => "",     // handle compressed
     CURLOPT_USERAGENT      => "ImporterONE", // name of client
     CURLOPT_AUTOREFERER    => true,   // set referrer on redirect
-    CURLOPT_CONNECTTIMEOUT => 1200,    // time-out on connect
-    CURLOPT_TIMEOUT        => 1200,    // time-out on response
+    CURLOPT_CONNECTTIMEOUT => 300,    // time-out on connect
+    CURLOPT_TIMEOUT        => 300,    // time-out on response
     CURLOPT_URL, $url 
   );
 

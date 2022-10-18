@@ -1,15 +1,13 @@
 if (typeof jQuery !== 'undefined') {
   jQuery(document).ready(function () {
     $cancel = false;
-    
-		jQuery("#io6-exec-sync").unbind();
-    jQuery("#io6-exec-cancel-sync").on('click', function() {
+    		
+    jQuery(document).on('click',"#io6-exec-cancel-sync", function() {
 			$cancel = true;
 			jQuery('#io6-exec-sync-info').html("Annullamento in corso...");
 		});
-		
-		jQuery("#io6-exec-sync").unbind();
-    jQuery("#io6-exec-sync").on('click', async function() {
+				
+    jQuery(document).on('click', "#io6-exec-sync", async function() {
 			
       jQuery(this).prop('disabled', true);
 			jQuery("#io6-exec-cancel-sync").removeClass("d-none");
@@ -53,6 +51,7 @@ if (typeof jQuery !== 'undefined') {
           }
         });
 				currentPage++;
+				
       }
 			
 			jQuery(this).prop('disabled', false);

@@ -5,21 +5,21 @@ if(!is_admin()) return;
  * Plugin Name: ImporterONE Cloud WP Connector
  * Plugin URI: https://www.imprimis.it
  * Description: ImporterONE Cloud Connector
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: IMPRIMIS Srl
  * Author URI: https://www.imprimis.it
  */
 
 //Parametri per checkrequirements
 define('IO6_PLUGIN_NAME', 'ImporterONE Cloud Connector');
-//define('IO6_PREFIX', 'io6_');
 define('IO6_DOMAIN', 'io6-wp-connect');
-define('IO_PHP_MIN', '7.4.13');
-define('IO_PHP_MAX', '7.4.32');
-define('IO_WOOCOMMERCE_MIN', '3.0.0');
-define('IO_WOOCOMMERCE_MAX', '6.9.4');
-define('IO_MAX_EXECUTION_TIME', 300);
-define('IO_MEMORY_LIMIT', 512);
+define('IO6_PHP_MIN', '7.4.13');
+define('IO6_PHP_MAX', '7.4.32');
+define('IO6_WOOCOMMERCE_MIN', '3.0.0');
+define('IO6_WOOCOMMERCE_MAX', '7.0.0');
+define('IO6_MAX_EXECUTION_TIME', 300);
+define('IO6_MEMORY_LIMIT', 512);
+
 
 define('IO6_LOG_INFO', 'INFO');
 define('IO6_LOG_WARNING', 'WARNING');
@@ -59,10 +59,23 @@ add_shortcode("io6-features-html", function($atts) {
   return html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
 });
 
+function io6_test_api() {
+	global $io6Engine;
+	try {
+		$results = $io6Engine->TestAPI($_GET['ep'], $_GET['t']);
+	}
+	catch(Exception $ex) {
+		$results = null;
+	}
+	
+	status_header(200);
+
+  echo isset($results) ? json_encode($results) : '{}';
+  wp_die();
+}
+
 function io6_sync() {
   
-  //TODO: EM20210407 => security check validation
-
 	foreach (array('transition_post_status', 'save_post', 'pre_post_update', 'add_attachment', 'edit_attachment', 'edit_post', 'post_updated', 'wp_insert_post', 'save_post_product') as $act) {
 		remove_all_actions($act);
 	}
@@ -82,6 +95,7 @@ function io6_sync() {
 
   echo isset($results) ? json_encode($results) : '{}';
   wp_die();
+	
 }
 
 if($io6_configuration->concatFeaturesHTML) {
@@ -103,11 +117,9 @@ if (!function_exists('io6_write_log')) {
 		global $logFile;
 		$time = date('Y-m-d H:i:s');
 		$logMessage = sprintf("%s - %s: %s\r\n", $time, $level, (is_array($log) || is_object($log) ? print_r($log, true) : $log));
-		//if (true === WP_DEBUG) {
-		
+				
 		error_log($logMessage, 3, $logFile);
 		
-		//}
 	}
 }
 

@@ -50,7 +50,6 @@ class IO6Product
 	public $minLimitQty;
 
 
-	//region Metodi
 	function __construct($jProduct, $io6_configuration)
 	{
 		$this->id = $jProduct['id'];
@@ -108,11 +107,7 @@ class IO6Product
 
 
 		if (count($this->features)) {
-			//TODO: EM20210825 => definire con quale ordine visualizzare i gruppi. IceCat li specifica ma ImporterONE no.
-			// usort($this->features, function($a, $b) {
-			// 	return strcmp($a->groupName, $b->groupName);
-			// 	return $a->groupId - $b->groupId;
-			// });
+		
 			$currentGroupName = '';
 
 			switch((int)$io6_configuration->featuresHTMLTemplate) {

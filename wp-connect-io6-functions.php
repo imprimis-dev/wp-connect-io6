@@ -29,46 +29,10 @@ function syncCategories($categories = null)
 
 	foreach ($categories as $category) {
 		if (!empty($category->parentCode)) {
-			// if(!isset($wp_categories_cache[$category->parentCode])) {
-			// 	$args = array(
-			// 		'hide_empty' => false, // also retrieve terms which are not used yet
-			// 		'meta_query' => array(
-			// 			array(
-			// 				'key'       => 'io6_category_code',
-			// 				'value'     => $category->parentCode,
-			// 				'compare'   => '='
-			// 			)
-			// 		),
-			// 		'taxonomy'  => 'product_cat',
-			// 	);
-			// 	$terms = get_terms($args);
-			// 	if (!is_wp_error($terms))
-			// 		$wp_parentCategoryId = !empty($terms) ? reset($terms)->term_id : 0;
-
-			// 	$wp_categories_cache[$category->parentCode] = $wp_parentCategoryId;
-			// }
-			// else
-			// 	$wp_parentCategoryId = $wp_categories_cache[$category->parentCode];
+			
       $wp_parentCategoryId = isset($wp_categories_cache[$category->parentCode]) ? $wp_categories_cache[$category->parentCode] : 0;   
 
 		}
-		// if(!isset($wp_categories_cache[$category->code])) {
-		// 	$args = array(
-		// 		'hide_empty' => false,
-		// 		'meta_query' => array(
-		// 			array(
-		// 				'key'       => 'io6_category_code',
-		// 				'value'     => $category->code,
-		// 				'compare'   => '='
-		// 			)
-		// 		),
-		// 		'taxonomy'  => 'product_cat',
-		// 	);
-		// 	$terms = get_terms($args);
-		// 	$wp_categoryId = !empty($terms) ? reset($terms)->term_id : 0;
-		// }
-		// else
-		// 	$wp_categoryId = $wp_categories_cache[$category->code];
 
     $wp_categoryId = isset($wp_categories_cache[$category->code]) ? $wp_categories_cache[$category->code] : 0;   
 
@@ -92,9 +56,11 @@ function syncCategories($categories = null)
 				$wp_categoryId = $wc_category['term_id'];
 			else
 				throw new Exception($wc_category->get_error_message());
+
+				update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
+				$wp_categories_cache[$category->code] = $wp_categoryId;
 		}
-		update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
-		$wp_categories_cache[$category->code] = $wp_categoryId;
+		
 
 		if (count($category->subCategories) > 0)
 			syncCategories($category->subCategories);
@@ -140,9 +106,11 @@ function syncBrands()
 				$wp_brandId = $wc_brand['term_id'];
 			else
 				throw new Exception($wc_brand->get_error_message());
+
+			$wp_brands_cache[$brand->code] = $wp_brandId;
+			update_term_meta($wp_brandId, 'io6_brand_code', $brand->code);
 		}
-		$wp_brands_cache[$brand->code] = $wp_brandId;
-		update_term_meta($wp_brandId, 'io6_brand_code', $brand->code);
+		
 	}
 	wp_cache_set('wp_brands', $wp_brands_cache);
 }
@@ -184,9 +152,9 @@ function syncSuppliers()
 				$wp_supplierId = $wc_supplier['term_id'];
 			else
 				throw new Exception($wc_supplier->get_error_message());
-		}
-		$wp_suppliers_cache[$supplier->id] = $wp_supplierId;
-		update_term_meta($wp_supplierId, 'io6_supplier_code', $supplier->id);
+			$wp_suppliers_cache[$supplier->id] = $wp_supplierId;
+			update_term_meta($wp_supplierId, 'io6_supplier_code', $supplier->id);
+		}		
 	}
 	wp_cache_set('wp_suppliers', $wp_suppliers_cache);
 }
@@ -196,9 +164,8 @@ function syncProducts($currentPage = 1, $fastSync = false)
 	global $wpdb, $images_path, $io6Engine, $wp_products_cache, $wp_brands_cache, $wp_categories_cache, $wp_suppliers_cache, $io6_configuration;
 
 	if ($currentPage == 1) {
-		prepareUpdate();    //TODO: EM20211101 => valutare se fare in fastSync
-		//preload products
-
+		prepareUpdate();    
+		
 		$wp_products_cache = array();
 		$sql = "SELECT post_id, meta_value FROM $wpdb->postmeta  WHERE meta_key='io6_product_id'";
 		$results = $wpdb->get_results($wpdb->prepare($sql));
@@ -227,13 +194,12 @@ function syncProducts($currentPage = 1, $fastSync = false)
 	$update_images = !$fastSync && $io6_configuration->manageImages;
 	$update_features = !$fastSync && $io6_configuration->manageFeatures;
 	$update_features_html = !$fastSync && $io6_configuration->manageFeaturesHTML;
-	$exclude_noimage = !$fastSync && $io6_configuration->excludeNoImage;
+	
 	$exclude_unavail_products = $io6_configuration->excludeUnAvail;
 
 	$product_type = get_term_by('name', 'simple', 'product_type');
 	if (!$product_type)
 		throw new Exception("Impossibile ottenere il 'product_type'. Verificare l'installazione di WooCommerce");
-	//$exclude_status = intval($options['exclude_status']);
 
 
 	$io6_results = $io6Engine->GetIO6Products($currentPage);
@@ -256,7 +222,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 		try {
 			$wp_product_id = isset($wp_products_cache[$product->id]) ? $wp_products_cache[$product->id] : 0;
-			$wp_brand_id = !$fastSync &&	isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
+			$wp_brand_id = isset($wp_brands_cache[$product->brandCode]) ? $wp_brands_cache[$product->brandCode] : 0;
 			$wp_category_id = !$fastSync && isset($wp_categories_cache[$product->categoryCode]) ? $wp_categories_cache[$product->categoryCode] : 0;
 			$wp_supplier_id = !$fastSync &&	isset($wp_suppliers_cache[$product->supplierId]) ? $wp_suppliers_cache[$product->supplierId] : 0;
 
@@ -267,11 +233,21 @@ function syncProducts($currentPage = 1, $fastSync = false)
 			$skuValue = $product->$skuProp;
 
 			if ($wp_product_id == 0) {
-				// $sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='io6_product_id' AND $wpdb->postmeta.meta_value='$product->id'";
-				// $results = $wpdb->get_results($wpdb->prepare($sql));
-				// if (isset($results) && count($results) > 0) {
-				// 	$wp_product_id = $results[0]->post_id;
-				// }
+				if ($fastSync)
+						throw new Exception("Prodotto non aggiornabile con procedura FAST perchè non esistente in WooCommerce o non abbinato ad ImporterONE.");						
+				
+				if (!empty($product->$skuProp)) {
+					$sql = "SELECT post_id FROM $wpdb->postmeta ";					
+					if($skuProp == 'partnumber')
+						$sql .= "INNER JOIN $wpdb->term_relationships tr ON tr.object_id = $wpdb->postmeta.post_id AND tr.term_taxonomy_id = $wp_brand_id";					
+					$sql .= "WHERE $wpdb->postmeta.meta_key='_sku' AND $wpdb->postmeta.meta_value='" . esc_sql($skuValue) . "'";
+
+					
+					$results = $wpdb->get_results($wpdb->prepare($sql));
+					if (isset($results) && count($results) > 0) {
+						$wp_product_id = $results[0]->post_id;
+					}
+				}
 
 				if ($wp_product_id == 0 && !empty($product->ean)) {
 					$sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='$eanField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->ean) . "'";
@@ -280,9 +256,12 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						$wp_product_id = $results[0]->post_id;
 					}
 				}
-				if ($wp_product_id == 0 && !empty($product->partNumber)) {
-					//TODO: EM20210325 => forse nn serve cercare anche per brandname perchè sopra ho cercato già il brand code... nn può essere un altro
-					$sql = "SELECT post_id FROM $wpdb->postmeta WHERE $wpdb->postmeta.meta_key='$partNumberField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->partNumber) . "'";
+				
+				if ($wp_product_id == 0 && !empty($product->partNumber)) {					
+					$sql = "SELECT post_id FROM $wpdb->postmeta ";
+					if($skuProp == 'partnumber')
+						$sql .= "INNER JOIN $wpdb->term_relationships tr ON tr.object_id = $wpdb->postmeta.post_id AND tr.term_taxonomy_id = $wp_brand_id";
+					$sql .= " WHERE $wpdb->postmeta.meta_key='$partNumberField' AND $wpdb->postmeta.meta_value='" . esc_sql($product->partNumber) . "'";
 					$results = $wpdb->get_results($wpdb->prepare($sql));
 					if (isset($results) && count($results) > 0) {
 						$wp_product_id = $results[0]->post_id;
@@ -291,18 +270,18 @@ function syncProducts($currentPage = 1, $fastSync = false)
 			}
 
 			$newReference = $wp_product_id == 0;
-			$has_cms_images = false;
+			
 
 			if ($newReference && $exclude_unavail_products && (int)$product->avail <= 0) {
 				throw new Exception("Product $skuValue doesn't exists and cannot be created because is unavail.");
 			}
 
 
-			if ($newReference && $fastSync) {    //se fastsync = true e il prodotto non esiste esce
+			if ($newReference && $fastSync) { 
 				throw new Exception("Product $skuValue doesn't exists and cannot be created during fastSync.");
 			}
 
-			$activeState = $product->isActive && $product->statusCode != 99 && (!$exclude_noimage || count($product->images) > 0);
+			$activeState = $product->isActive && $product->statusCode != 99;
 
 			if ($wp_product_id) {
 				$retProduct['wp_product_id'] = $wp_product_id;
@@ -323,14 +302,6 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 				$wc_product = new WC_Product($wp_product_id);
         
-				if ($io6_manage_images && $exclude_noimage && !$fastSync) {
-					if ($wc_product != null)
-						$has_cms_images = !empty($wc_product->get_image_id()); //|| count($wc_product->get_gallery_image_ids()) > 0				
-
-					$activeState = $activeState && $has_cms_images;
-				}
-
-
 				$io6_manage_categories = $activeState ? ($io6_manage_categories != 2 ? $io6_manage_categories : $update_categories) : false;
 				$io6_manage_title = $activeState ? ($io6_manage_title != 2 ? $io6_manage_title : $update_title) : false;
 				$io6_manage_content = $activeState ? ($io6_manage_content != 2 ? $io6_manage_content : $update_content) : false;
@@ -467,24 +438,16 @@ function syncProducts($currentPage = 1, $fastSync = false)
 				//$arrivalDate;				NN c'è un campo su WooCommerce
 				//$officialPrice;			NN c'è un campo su WooCommerce			
 				//$raeeAmount;				NN c'è un campo su WooCommerce
+
         if($newReference)
 				  $wc_product = new WC_Product($wp_product_id);
 			}
 
 			if ($io6_manage_categories) {
 
-				$product_cat_id = 0;
-				//if(!$newReference) {
-				// $productCategories = get_the_terms($wp_product_id, 'product_cat' );
-				// $productCategories = wp_get_post_terms($wp_product_id, 'product_cat', array('fields' => 'ids'));
-				// foreach ($productCategories as $productCategory) {
-				//   if($productCategory->parent != 0){
-				//     $product_cat_id = $productCategory->term_id;
-				//     break;
-				//   }
-				// }
-
-				if ($product_cat_id != $wp_category_id) {
+				$current_cat_ids = wc_get_product_term_ids($wp_product_id, 'product_cat');
+				
+				if (!in_array($wp_category_id, $current_cat_ids)) {
 					$categories = array();
 					$categories[] = $wp_category_id;
 
@@ -545,7 +508,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 			$wc_product->set_stock_status((int)$product->avail > 0 && $activeState ? 'instock' : 'outofstock');
 			$wc_product->set_stock_quantity($activeState ? (int)$product->avail : 0);
-			$wc_product->set_catalog_visibility($activeState ? 'visible' : 'hidden');		//TODO: EM20210330 => si potrebbero differenziare le due impostazioni magari visualizzando il prodotto solo nel dettaglio
+			$wc_product->set_catalog_visibility($activeState ? 'visible' : 'hidden');
 
 			$wc_product->save();
 
@@ -721,6 +684,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 
 	return $syncResults;
 }
+
 
 function prepareUpdate()
 {

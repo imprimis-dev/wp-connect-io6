@@ -16,13 +16,10 @@ function io6_render_features_html()
 {
   global $post;
 
-  // // Nonce field to validate form request came from current site
   wp_nonce_field(basename(__FILE__), 'features_fields');
-
-  //echo "<h3>Add Your Content Here</h3>";
+  
   $featuresHtml = html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
-
-  //This function adds the WYSIWYG Editor
+  
   wp_editor(
     $featuresHtml,
     'custom_editor',
@@ -37,19 +34,15 @@ function io6_render_features_html()
 
 add_action('save_post', function ($post_id, $post) {
 
-  // Return if the user doesn't have edit permissions.
+  
   if (!current_user_can('edit_post', $post_id)) {
     return $post_id;
   }
 
-  // Verify this came from the our screen and with proper authorization,
-  // because save_post can be triggered at other times.
   if (!isset($_POST['io6_features_html']) || !wp_verify_nonce($_POST['features_fields'], basename(__FILE__))) {
     return $post_id;
   }
 
-  // Now that we're authenticated, time to save the data.
-  // This sanitizes the data from the field and saves it into an array $events_meta.
   $io6_features_html = esc_textarea($_POST['io6_features_html']);
 
   if ('revision' === $post->post_type) {
@@ -63,7 +56,7 @@ add_action('save_post', function ($post_id, $post) {
 
 
 add_action('woocommerce_product_options_inventory_product_data', function () {
-  // Create custom text fields
+  
   global $io6_configuration;
 
   if ($io6_configuration->selectedEanField === 'io6_eancode') {
@@ -123,9 +116,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna le categorie', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare il titolo del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 
@@ -135,9 +126,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna il titolo', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare il titolo del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 
@@ -147,9 +136,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna il contenuto', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare il contenuto del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 
@@ -159,9 +146,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna la breve descrizione', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare la breve descrizione  del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 	
@@ -171,9 +156,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna i prezzi', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare il titolo del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 
@@ -183,9 +166,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna le immagini', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare le immagini  del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+     
 
     )
   );
@@ -196,9 +177,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna gli attributi', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare gli attributi del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 
@@ -208,9 +187,7 @@ add_action('woocommerce_product_options_advanced', function () {
       'label' => __('Aggiorna la scheda tecnica', IO6_DOMAIN),
       'desc_tip' => false,
       'options' => $options
-      //'value' => $value == null || $value == '' ? 1 : $value,
-      //'cbvalue' => 1,
-      //'description' => sprintf(__('Indica se %s può aggiornare la scheda tecnica del prodotto.', 'icecool'), IC_PLUGIN_NAME)
+      
     )
   );
 });
