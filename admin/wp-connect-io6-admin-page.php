@@ -79,8 +79,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
 
   if ('importerone-cloud-connector_page_io6_menu_execute' === $hook) {
 		wp_enqueue_script('main', plugin_dir_url(__DIR__) . '/assets/js/main.js', array('jquery'), false, true);
-	
-		return;
+			
   }
 	else {
 		wp_enqueue_script('settings', plugin_dir_url(__DIR__) . '/assets/js/settings.js', array('jquery'), false, true);
@@ -465,7 +464,7 @@ function admin_io6_settings() {
 
   add_settings_field(
     'io6_exclude_noimage',
-    'Disattiva senza immagini',
+    'Escludi prodotti senza immagini',
     'io6_render_exclude_noimage',
     'io6_section_import',
     'io6_section_import',
@@ -476,7 +475,7 @@ function admin_io6_settings() {
 
   add_settings_field(
     'io6_exclude_avail_lessthan',
-    'Disattiva prodotti con disponibilità minore di',
+    'Escludi prodotti con disponibilità minore di',
     'io6_render_exclude_avail_lessthan',
     'io6_section_import',
     'io6_section_import',
@@ -875,7 +874,7 @@ function io6_render_exclude_noimage($args) {
 ?>
   <input id="<?php echo esc_attr($args['id']); ?>" name="io6_options[exclude_noimage]" type="checkbox" value="1" <?php echo ($defaultValue ? 'checked' : '') ?> />
   <label for="<?php echo esc_attr($args['id']); ?>">
-    Disattiva prodotti senza immagini
+	ImporterONE non invierà prodotti senza immagini e quelli corrispondenti verranno disattivati.
   </label>
 
 <?php
@@ -889,7 +888,7 @@ function io6_render_exclude_avail_lessthan($args) {
 ?>
   <input id="<?php echo esc_attr($args['id']); ?>" name="io6_options[exclude_avail_lessthan]" min="0" class="small-text" type="number" value="<?php echo $defaultValue; ?>" />
   <label for="<?php echo esc_attr($args['id']); ?>">
-    Indica la disponibilità minima dei prodotti da importare. 0 = Nessuna verifica sulla disponibilità 
+	ImporterONE non invierà prodotti con disponibilità inferiore a quella impostata e quelli corrispondenti verranno disattivati.
   </label>
 
 <?php

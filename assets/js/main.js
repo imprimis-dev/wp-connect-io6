@@ -51,6 +51,7 @@ if (typeof jQuery !== 'undefined') {
           }
         });
 				currentPage++;
+				
       }
 			
 			jQuery(this).prop('disabled', false);

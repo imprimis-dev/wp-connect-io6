@@ -113,7 +113,7 @@ class IO6ConnectEngine {
 			$parameters['isActive'] = 1;
 			$parameters['isObsolete'] = 0;
 
-			//$parameters['ean'] = '4713883197533';
+			//$parameters['ean'] = '0606449133332';
 
 			$results = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters);
 
@@ -147,7 +147,7 @@ class IO6ConnectEngine {
 
 			try {
 				$retValue = $this->callIO6API('catalogs', 'GET', null, $endPoint, $api_token);
-				$results['response']['catalogs']['passed'] = true;
+				$results['response']['catalogs']['passed'] = $retValue === false ? false : true;
 				$results['response']['catalogs']['total'] = count($retValue);
 			}
 			catch(Exception $ex) {
@@ -170,7 +170,7 @@ class IO6ConnectEngine {
 
 				$retValue = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters, $endPoint, $api_token);
 
-				$results['response']['products']['passed'] = true;
+				$results['response']['products']['passed'] = $retValue === false ? false : true;;
 				$results['response']['products']['total'] = $retValue['elementsFounds'];
 			}
 			catch(Exception $ex) {

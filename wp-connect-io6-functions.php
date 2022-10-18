@@ -56,9 +56,11 @@ function syncCategories($categories = null)
 				$wp_categoryId = $wc_category['term_id'];
 			else
 				throw new Exception($wc_category->get_error_message());
+
+				update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
+				$wp_categories_cache[$category->code] = $wp_categoryId;
 		}
-		update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
-		$wp_categories_cache[$category->code] = $wp_categoryId;
+		
 
 		if (count($category->subCategories) > 0)
 			syncCategories($category->subCategories);
@@ -104,9 +106,11 @@ function syncBrands()
 				$wp_brandId = $wc_brand['term_id'];
 			else
 				throw new Exception($wc_brand->get_error_message());
+
+			$wp_brands_cache[$brand->code] = $wp_brandId;
+			update_term_meta($wp_brandId, 'io6_brand_code', $brand->code);
 		}
-		$wp_brands_cache[$brand->code] = $wp_brandId;
-		update_term_meta($wp_brandId, 'io6_brand_code', $brand->code);
+		
 	}
 	wp_cache_set('wp_brands', $wp_brands_cache);
 }
@@ -148,9 +152,9 @@ function syncSuppliers()
 				$wp_supplierId = $wc_supplier['term_id'];
 			else
 				throw new Exception($wc_supplier->get_error_message());
-		}
-		$wp_suppliers_cache[$supplier->id] = $wp_supplierId;
-		update_term_meta($wp_supplierId, 'io6_supplier_code', $supplier->id);
+			$wp_suppliers_cache[$supplier->id] = $wp_supplierId;
+			update_term_meta($wp_supplierId, 'io6_supplier_code', $supplier->id);
+		}		
 	}
 	wp_cache_set('wp_suppliers', $wp_suppliers_cache);
 }
@@ -162,7 +166,6 @@ function syncProducts($currentPage = 1, $fastSync = false)
 	if ($currentPage == 1) {
 		prepareUpdate();    
 		
-
 		$wp_products_cache = array();
 		$sql = "SELECT post_id, meta_value FROM $wpdb->postmeta  WHERE meta_key='io6_product_id'";
 		$results = $wpdb->get_results($wpdb->prepare($sql));

@@ -5,7 +5,7 @@ if(!is_admin()) return;
  * Plugin Name: ImporterONE Cloud WP Connector
  * Plugin URI: https://www.imprimis.it
  * Description: ImporterONE Cloud Connector
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: IMPRIMIS Srl
  * Author URI: https://www.imprimis.it
  */
@@ -16,7 +16,7 @@ define('IO6_DOMAIN', 'io6-wp-connect');
 define('IO6_PHP_MIN', '7.4.13');
 define('IO6_PHP_MAX', '7.4.32');
 define('IO6_WOOCOMMERCE_MIN', '3.0.0');
-define('IO6_WOOCOMMERCE_MAX', '6.9.4');
+define('IO6_WOOCOMMERCE_MAX', '7.0.0');
 define('IO6_MAX_EXECUTION_TIME', 300);
 define('IO6_MEMORY_LIMIT', 512);
 
@@ -95,6 +95,7 @@ function io6_sync() {
 
   echo isset($results) ? json_encode($results) : '{}';
   wp_die();
+	
 }
 
 if($io6_configuration->concatFeaturesHTML) {
