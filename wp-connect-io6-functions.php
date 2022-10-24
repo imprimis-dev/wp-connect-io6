@@ -28,13 +28,12 @@ function syncCategories($categories = null)
 	$wp_parentCategoryId = 0;
 
 	foreach ($categories as $category) {
-		if (!empty($category->parentCode)) {
-			
+		if (!empty($category->parentCode))			
       $wp_parentCategoryId = isset($wp_categories_cache[$category->parentCode]) ? $wp_categories_cache[$category->parentCode] : 0;   
-
-		}
-
+		
     $wp_categoryId = isset($wp_categories_cache[$category->code]) ? $wp_categories_cache[$category->code] : 0;   
+		
+		$foundByName = false;
 
 		if ($wp_categoryId == 0) {
 			$args = array(
@@ -45,11 +44,15 @@ function syncCategories($categories = null)
 			);
 			$terms = get_terms($args);
 			$wp_categoryId = !empty($terms) ? reset($terms)->term_id : 0;
+			$foundByName = true;
 		}
 
 		$wc_category = null;
-		if ($wp_categoryId)
+		if ($wp_categoryId) {
 			$wc_category = wp_update_term($wp_categoryId, 'product_cat', array('name' => $category->name, 'parent' => $wp_parentCategoryId));
+			if($foundByName)
+				update_term_meta($wp_categoryId, 'io6_category_code', $category->code);
+		}
 		else {
 			$wc_category = wp_insert_term($category->name, 'product_cat', array('parent' => $wp_parentCategoryId));
 			if (!is_wp_error($wc_category))
@@ -61,7 +64,6 @@ function syncCategories($categories = null)
 				$wp_categories_cache[$category->code] = $wp_categoryId;
 		}
 		
-
 		if (count($category->subCategories) > 0)
 			syncCategories($category->subCategories);
 	}
