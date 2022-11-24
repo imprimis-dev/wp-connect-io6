@@ -113,7 +113,7 @@ class IO6ConnectEngine {
 			$parameters['isActive'] = 1;
 			$parameters['isObsolete'] = 0;
 
-			//$parameters['ean'] = '0606449133332';
+			//$parameters['ean'] = '0731304338246';
 
 			$results = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters);
 

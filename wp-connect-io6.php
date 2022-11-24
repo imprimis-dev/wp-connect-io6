@@ -1,11 +1,12 @@
 <?php 
+
 if(!is_admin()) return;
 
 /**
  * Plugin Name: ImporterONE Cloud WP Connector
  * Plugin URI: https://www.imprimis.it
  * Description: ImporterONE Cloud Connector
- * Version: 1.1.2
+ * Version: 1.1.3
  * Author: IMPRIMIS Srl
  * Author URI: https://www.imprimis.it
  */
@@ -54,10 +55,6 @@ add_filter( 'plugin_action_links_' . plugin_basename(__FILE__),
 	}
 );
  
-add_shortcode("io6-features-html", function($atts) {
-  global $post;
-  return html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
-});
 
 function io6_test_api() {
 	global $io6Engine;
