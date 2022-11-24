@@ -15,9 +15,9 @@ if(!is_admin()) return;
 define('IO6_PLUGIN_NAME', 'ImporterONE Cloud Connector');
 define('IO6_DOMAIN', 'io6-wp-connect');
 define('IO6_PHP_MIN', '7.4.13');
-define('IO6_PHP_MAX', '7.4.32');
+define('IO6_PHP_MAX', '7.4.33');
 define('IO6_WOOCOMMERCE_MIN', '3.0.0');
-define('IO6_WOOCOMMERCE_MAX', '7.0.0');
+define('IO6_WOOCOMMERCE_MAX', '7.1.0');
 define('IO6_MAX_EXECUTION_TIME', 300);
 define('IO6_MEMORY_LIMIT', 512);
 

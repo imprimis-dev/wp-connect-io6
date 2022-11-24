@@ -567,9 +567,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 							$wp_image_last_update = date('YmdHis', filemtime($wp_image['absolute_path']));
 					}
 
-
 					$to_download = empty($wp_image) || !file_exists($wp_image['absolute_path']) || date('Y-m-d H:i:s', strtotime($image->lastUpdate)) > $wp_image_last_update;
-
 
 					if ($to_download) {
 						//scarica l'immagine

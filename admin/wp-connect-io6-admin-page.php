@@ -948,6 +948,7 @@ function checkServerRequirements() {
 			'current' => WC_VERSION, 
 			'passed' => (version_compare(WC_VERSION, IO6_WOOCOMMERCE_MIN, '>=') && version_compare(WC_VERSION, IO6_WOOCOMMERCE_MAX, '<='))
 		);
+		
 		$passed = true;
 		foreach($server_checking as $requirement) {
 			if($requirement['passed'] == false) {
