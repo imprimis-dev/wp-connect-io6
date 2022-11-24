@@ -539,7 +539,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 						$gallery[$row->post_id]['imageuri'] = $row->meta_value;
 				}
 				//getting gallery
-				$sql = "SELECT p2.post_id, p2.meta_value FROM $wpdb->postmeta p INNER JOIN $wpdb->postmeta p2 ON	p2.post_id REGEXP CONCAT('(^', REPLACE(p.meta_value, ',', '$)|(^'), '$)') AND (p2.meta_key='io6_imageuri' OR p2.meta_key='_wp_attached_file') WHERE p.meta_key = '_product_image_gallery' AND p.post_id = $wp_product_id";
+				$sql = "SELECT p2.post_id, p2.meta_key, p2.meta_value FROM $wpdb->postmeta p INNER JOIN $wpdb->postmeta p2 ON	p2.post_id REGEXP CONCAT('(^', REPLACE(p.meta_value, ',', '$)|(^'), '$)') AND (p2.meta_key='io6_imageuri' OR p2.meta_key='_wp_attached_file') WHERE p.meta_key = '_product_image_gallery' AND p.post_id = $wp_product_id";
 				$results = $wpdb->get_results($wpdb->prepare($sql));
 
 				foreach ($results as $row) {
