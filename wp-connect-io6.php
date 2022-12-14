@@ -1,5 +1,10 @@
 <?php 
 
+add_shortcode("io6-features-html", function($atts) {
+  global $post;
+  return html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
+});
+
 if(!is_admin()) return;
 
 /**
