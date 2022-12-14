@@ -113,7 +113,7 @@ class IO6ConnectEngine {
 			$parameters['isActive'] = 1;
 			$parameters['isObsolete'] = 0;
 
-			//$parameters['ean'] = '0606449133332';
+			//$parameters['ean'] = '0731304338246';
 
 			$results = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters);
 
@@ -144,38 +144,44 @@ class IO6ConnectEngine {
 
 		public function TestAPI($endPoint, $api_token) {
 			$results = array();
+			$catalogId = -1;
 
+			$test_passed = false;
 			try {
 				$retValue = $this->callIO6API('catalogs', 'GET', null, $endPoint, $api_token);
-				$results['response']['catalogs']['passed'] = $retValue === false ? false : true;
-				$results['response']['catalogs']['total'] = count($retValue);
+				$test_passed = $retValue === false ? false : true;
+				$catalogId = $test_passed ? (count($retValue) > 0 ? $retValue[0]['id'] : 0) : $catalogId;
+
+				if($catalogId > 0) {
+					$parameters = [];
+					$parameters['pageSize'] = 5;
+					$parameters['currentPage'] = 1;
+					$parameters['imagelimit'] = 1;
+					$parameters['featuresSearch'] = 0;
+					$parameters['calculateFoundRows'] = true;			
+					$parameters['imagesSearch'] = 0;
+					$parameters['isActive'] = 1;
+					$parameters['isObsolete'] = 0;
+
+					$retValue = $this->callIO6API(sprintf('catalogs/%s/products/search', $catalogId), 'POST', $parameters, $endPoint, $api_token);
+
+					$test_passed = $retValue === false ? false : true;
+				}
 			}
-			catch(Exception $ex) {
-				$results['response']['catalogs']['passed'] = false;
+			catch(Exception $ex) {				
 			}
 			
-
-
-			try {
-				$parameters = [];
-				//$parameters['priceListId'] = $this->configuration->priceListId;
-				$parameters['pageSize'] = 5;
-				$parameters['currentPage'] = 1;
-				$parameters['imagelimit'] = 1;
-				$parameters['featuresSearch'] = 0;
-				$parameters['calculateFoundRows'] = true;			
-				$parameters['imagesSearch'] = 0;
-				$parameters['isActive'] = 1;
-				$parameters['isObsolete'] = 0;
-
-				$retValue = $this->callIO6API(sprintf('catalogs/%s/products/search', $this->configuration->catalogId), 'POST', $parameters, $endPoint, $api_token);
-
-				$results['response']['products']['passed'] = $retValue === false ? false : true;;
-				$results['response']['products']['total'] = $retValue['elementsFounds'];
+			$results['response']['passed'] =  $test_passed;
+			
+			if($test_passed) {
+				$results['response']['message'] = "Connessione ImporterONE avvenuta correttamente.";				
+				if($catalogId == 0) {
+					$results['response']['message'] = "Connessione ImporterONE avvenuta correttamente. Attenzione! Nessun Catalogo Personale impostato";
+					$results['response']['iswarning'] = true;
+				}
 			}
-			catch(Exception $ex) {
-				$results['response']['products']['passed'] = false;
-			}
+			else
+				$results['response']['message'] = "Errore di connessione con ImporterONE. Controllare i parametri immessi o contattare il supporto tecnico.";
 			
 			return $results;
 		}

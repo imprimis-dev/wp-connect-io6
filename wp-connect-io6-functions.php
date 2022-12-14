@@ -525,7 +525,6 @@ function syncProducts($currentPage = 1, $fastSync = false)
 					wp_delete_attachment($attachment_to_delete->ID);
 				}
 
-
 				$sql = "SELECT p2.post_id, p2.meta_key, p2.meta_value FROM $wpdb->postmeta INNER JOIN $wpdb->postmeta p2 ON p2.post_id = $wpdb->postmeta.meta_value AND (p2.meta_key='io6_imageuri' OR p2.meta_key='_wp_attached_file') WHERE $wpdb->postmeta.meta_key='_thumbnail_id' AND $wpdb->postmeta.post_id=$wp_product_id";
 				$results = $wpdb->get_results($wpdb->prepare($sql));
 
@@ -567,9 +566,7 @@ function syncProducts($currentPage = 1, $fastSync = false)
 							$wp_image_last_update = date('YmdHis', filemtime($wp_image['absolute_path']));
 					}
 
-
 					$to_download = empty($wp_image) || !file_exists($wp_image['absolute_path']) || date('Y-m-d H:i:s', strtotime($image->lastUpdate)) > $wp_image_last_update;
-
 
 					if ($to_download) {
 						//scarica l'immagine
@@ -681,8 +678,8 @@ function syncProducts($currentPage = 1, $fastSync = false)
 		array_push($syncResults['products'], $retProduct);
 	}
 
-	if ($currentPage >= $io6_results['pages'])
-		resetCatalog();
+	 if ($currentPage >= $io6_results['pages'])
+	 	resetCatalog();
 
 	return $syncResults;
 }

@@ -1,11 +1,17 @@
 <?php 
+
+add_shortcode("io6-features-html", function($atts) {
+  global $post;
+  return html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
+});
+
 if(!is_admin()) return;
 
 /**
  * Plugin Name: ImporterONE Cloud WP Connector
  * Plugin URI: https://www.imprimis.it
  * Description: ImporterONE Cloud Connector
- * Version: 1.1.2
+ * Version: 1.1.3
  * Author: IMPRIMIS Srl
  * Author URI: https://www.imprimis.it
  */
@@ -14,9 +20,9 @@ if(!is_admin()) return;
 define('IO6_PLUGIN_NAME', 'ImporterONE Cloud Connector');
 define('IO6_DOMAIN', 'io6-wp-connect');
 define('IO6_PHP_MIN', '7.4.13');
-define('IO6_PHP_MAX', '7.4.32');
+define('IO6_PHP_MAX', '7.4.33');
 define('IO6_WOOCOMMERCE_MIN', '3.0.0');
-define('IO6_WOOCOMMERCE_MAX', '7.0.0');
+define('IO6_WOOCOMMERCE_MAX', '7.1.0');
 define('IO6_MAX_EXECUTION_TIME', 300);
 define('IO6_MEMORY_LIMIT', 512);
 
@@ -54,10 +60,6 @@ add_filter( 'plugin_action_links_' . plugin_basename(__FILE__),
 	}
 );
  
-add_shortcode("io6-features-html", function($atts) {
-  global $post;
-  return html_entity_decode(get_post_meta($post->ID, 'io6_features_html', true));
-});
 
 function io6_test_api() {
 	global $io6Engine;

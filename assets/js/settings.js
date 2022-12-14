@@ -18,12 +18,8 @@ if (typeof jQuery !== 'undefined') {
 				dataType: 'json',				
 				url: io6_ajax_url + '?action=io6-test-api&ep=' + endPoint + '&t=' + token,			
 				success: function (data) {
-					if(data.response.catalogs.passed && data.response.products.passed) {
-						jQuery('div.test-api').append('<div class="response updated" style="margin-top:15px"><h4>Connessione ImporterONE avvenuta correttamente.<h4></div>');
-					}
-					else {
-						jQuery('div.test-api').append('<div class="response error" style="margin-top:15px"><h4>C\'è stato un problema di connessione con ImporterONE.<br/>Controllare i parametri immessi o contattare il supporto tecnico.</h4></div>');
-					}
+					jQuery('div.test-api > div.notice').remove();
+					jQuery('div.test-api').append('<div class="notice notice-' + (data.response.passed ? data.response.iswarning ? 'warning' : 'success' : 'error') + '" style="margin-top:15px"><h4>' + data.response.message + '<h4></div>');
 					
 				},
 				error: function (error) {
